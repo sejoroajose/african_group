@@ -94,8 +94,8 @@ router.post(
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: 'african-group-tau.vercel.app',
-        expectedRPID: 'african-group-tau.vercel.app',
+        expectedOrigin: new URL(process.env.ORIGIN).origin,
+        expectedRPID: new URL(process.env.ORIGIN).hostname, 
         requireUserVerification: true,
       })
 
@@ -105,7 +105,6 @@ router.post(
         throw new Error('Verification failed')
       }
 
-      // Extract credential data safely
       const aaguid = registrationInfo.aaguid
       const credentialID = registrationInfo.credential.id
       const credentialPublicKey = registrationInfo.credential.publicKey
@@ -117,7 +116,6 @@ router.post(
 
       const credentialIDString = base64url.encode(credentialID)
 
-      // Save to database
       await CredentialModel.create({
         employeeId,
         credentialId: credentialIDString,
