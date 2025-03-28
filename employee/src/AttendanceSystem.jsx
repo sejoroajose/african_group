@@ -404,19 +404,9 @@ const AttendanceSystem = () => {
   }
 
   
+    
     const parseTimestamp = (timestamp) => {
-      if (!timestamp) {
-        return new Date()
-      }
-
-      const parsedDate = new Date(timestamp)
-
-      if (!isNaN(parsedDate.getTime())) {
-        return parsedDate
-      }
-
-      console.warn('Invalid timestamp:', timestamp)
-      return new Date()
+      return new Date(timestamp)
     }
 
    const fetchAttendanceRecords = async (date) => {
@@ -609,7 +599,7 @@ const AttendanceSystem = () => {
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
-      <div className="w-full max-w-3xl mx-auto p-4 space-y-8">
+      <div className="w-full max-w-4xl mx-auto p-4 space-y-8">
         <div className="flex justify-center py-4">
           <img
             src="logo.jpg"
@@ -821,7 +811,7 @@ const AttendanceSystem = () => {
                         <table className="w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
                                 Name
                               </th>
                               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -844,7 +834,10 @@ const AttendanceSystem = () => {
                                       setSelectedEmployee(record)
                                       setShowLocationModal(true)
                                     }}
-                                    className="text-blue-600 hover:underline text-left w-full"
+                                    className={`text-blue-600 hover:underline text-left w-full truncate ${getTimeStyle(
+                                      record.timestamp,
+                                      record.type
+                                    )}`}
                                   >
                                     {record.name}
                                   </button>
