@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { Bell, Check, Coffee, Sun, Moon, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
+
+mapboxgl.accessToken =
+  'pk.eyJ1IjoibWFneWsxOSIsImEiOiJjbThzcWlqazQwMm1nMnFzZHBrb2JoOWhzIn0.ppbF1iljb9cl9m1mLn94zA'
 
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
@@ -547,33 +548,30 @@ const AttendanceSystem = () => {
   }
 
    const EmployeeLocationModal = ({ employee, onClose }) => {
+     const mapContainer = useRef(null)
+     const map = useRef(null)
+
      useEffect(() => {
-       if (employee && employee.latitude && employee.longitude) {
-         const DefaultIcon = L.icon({
-           iconUrl: markerIcon,
-           shadowUrl: markerShadow,
-           iconSize: [25, 41],
-           iconAnchor: [12, 41],
-           popupAnchor: [1, -34],
-           shadowSize: [41, 41],
+       if (employee?.latitude && employee?.longitude && !map.current) {
+         map.current = new mapboxgl.Map({
+           container: mapContainer.current,
+           style: 'mapbox://styles/mapbox/streets-v12', 
+           center: [employee.longitude, employee.latitude],
+           zoom: 13,
          })
-         L.Marker.prototype.options.icon = DefaultIcon
 
-         const map = L.map('map-container').setView(
-           [employee.latitude, employee.longitude],
-           17 
-         )
+         // Add marker
+         new mapboxgl.Marker()
+           .setLngLat([employee.longitude, employee.latitude])
+           .addTo(map.current)
 
-         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-           attribution: '© OpenStreetMap contributors',
-         }).addTo(map)
-
-         L.marker([employee.latitude, employee.longitude])
-           .addTo(map)
-           .bindPopup(`<b>${employee.name}</b><br>Precise Location`)
-           .openPopup()
-
-         return () => map.remove()
+         // Clean up map on unmount
+         return () => {
+           if (map.current) {
+             map.current.remove()
+             map.current = null
+           }
+         }
        }
      }, [employee])
 
@@ -594,7 +592,7 @@ const AttendanceSystem = () => {
              Details
            </h2>
            <div className="w-full h-96">
-             <div id="map-container" className="w-full h-full" />
+             <div ref={mapContainer} className="w-full h-full" />
            </div>
            <div className="mt-4 text-sm text-gray-600">
              <p>Location Type: {employee.location_type}</p>
