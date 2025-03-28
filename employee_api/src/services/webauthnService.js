@@ -7,13 +7,17 @@ const WebAuthnService = {
     RP_NAME: 'African Group NG Employee Attendance System',
     TIMEOUT: 30 * 60 * 1000,
     SUPPORTED_ALGORITHMS: [-7, -257],
+    RP_ID: process.env.VERCEL_URL || 'african-group-tau.vercel.app',
+    ORIGIN:
+      process.env.ORIGIN ||
+      `https://${process.env.VERCEL_URL || 'african-group-tau.vercel.app'}`,
   },
 
   async generateRegistrationOptions(user, existingCredentials = null) {
     try {
       return await fido2.generateRegistrationOptions({
         rpName: this.CONFIG.RP_NAME,
-        rpID: 'african-group-tau.vercel.app',
+        rpID: this.CONFIG.RP_ID, 
         userID: isoUint8Array.fromUTF8String(user.employee_id),
         userName: user.employee_id,
         displayName: user.name,
@@ -48,8 +52,8 @@ const WebAuthnService = {
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: process.env.ORIGIN,
-        expectedRPID: process.env.HOSTNAME,
+        expectedOrigin: this.CONFIG.ORIGIN, 
+        expectedRPID: this.CONFIG.RP_ID, 
         requireUserVerification: true,
       })
 
@@ -68,7 +72,7 @@ const WebAuthnService = {
     try {
       return await fido2.generateAuthenticationOptions({
         timeout: this.CONFIG.TIMEOUT,
-        rpID: process.env.HOSTNAME,
+        rpID: this.CONFIG.RP_ID, 
         userVerification: 'required',
       })
     } catch (error) {
@@ -82,8 +86,8 @@ const WebAuthnService = {
       const verification = await fido2.verifyAuthenticationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: process.env.ORIGIN,
-        expectedRPID: process.env.HOSTNAME,
+        expectedOrigin: this.CONFIG.ORIGIN, 
+        expectedRPID: this.CONFIG.RP_ID, 
         credential: {
           id: this.normalizeCredentialId(storedCredential.credential_id),
           publicKey: storedCredential.public_key,

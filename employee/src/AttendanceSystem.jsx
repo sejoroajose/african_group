@@ -551,31 +551,31 @@ const AttendanceSystem = () => {
      const mapContainer = useRef(null)
      const map = useRef(null)
 
+     if (!employee) return null
+
      useEffect(() => {
-       if (employee?.latitude && employee?.longitude && !map.current) {
-         map.current = new mapboxgl.Map({
-           container: mapContainer.current,
-           style: 'mapbox://styles/mapbox/streets-v12', 
-           center: [employee.longitude, employee.latitude],
-           zoom: 13,
-         })
+       if (employee?.latitude && employee?.longitude) {
+         if (!map.current) {
+           map.current = new mapboxgl.Map({
+             container: mapContainer.current,
+             style: 'mapbox://styles/mapbox/streets-v12',
+             center: [employee.longitude, employee.latitude],
+             zoom: 13,
+           })
 
-         // Add marker
-         new mapboxgl.Marker()
-           .setLngLat([employee.longitude, employee.latitude])
-           .addTo(map.current)
-
-         // Clean up map on unmount
-         return () => {
-           if (map.current) {
-             map.current.remove()
-             map.current = null
-           }
+           new mapboxgl.Marker()
+             .setLngLat([employee.longitude, employee.latitude])
+             .addTo(map.current)
          }
        }
-     }, [employee])
 
-     if (!employee) return null
+       return () => {
+         if (map.current) {
+           map.current.remove()
+           map.current = null
+         }
+       }
+     }, [employee]) 
 
      return (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -592,7 +592,11 @@ const AttendanceSystem = () => {
              Details
            </h2>
            <div className="w-full h-96">
-             <div ref={mapContainer} className="w-full h-full" />
+             <div
+               ref={mapContainer}
+               className="w-full h-full"
+               style={{ borderRadius: '8px' }}
+             />
            </div>
            <div className="mt-4 text-sm text-gray-600">
              <p>Location Type: {employee.location_type}</p>
@@ -604,7 +608,6 @@ const AttendanceSystem = () => {
        </div>
      )
    }
-
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
