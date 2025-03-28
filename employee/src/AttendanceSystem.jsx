@@ -4,6 +4,8 @@ import { Bell, Check, Coffee, Sun, Moon, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
@@ -421,10 +423,6 @@ const AttendanceSystem = () => {
        )
 
        console.log('Response status:', response.status)
-       console.log(
-         'Response headers:',
-         Object.fromEntries(response.headers.entries())
-       )
 
        if (!response.ok) {
          const errorText = await response.text()
@@ -440,8 +438,26 @@ const AttendanceSystem = () => {
 
        if (Array.isArray(data)) {
          const adjustedRecords = data.map((record) => {
-           const adjustedTime = new Date(record.timestamp)
-           adjustedTime.setHours(adjustedTime.getHours() - 1)
+           // Safely parse the timestamp
+           let adjustedTime
+           try {
+             // Use a more robust timestamp parsing
+             adjustedTime = record.timestamp
+               ? new Date(record.timestamp)
+               : new Date()
+
+             // Only adjust if the date is valid
+             if (!isNaN(adjustedTime.getTime())) {
+               adjustedTime.setHours(adjustedTime.getHours() - 1)
+             } else {
+               console.warn('Invalid timestamp:', record.timestamp)
+               adjustedTime = new Date()
+             }
+           } catch (parseError) {
+             console.error('Error parsing timestamp:', parseError)
+             adjustedTime = new Date()
+           }
+
            return {
              ...record,
              timestamp: adjustedTime.toISOString(),
@@ -533,9 +549,19 @@ const AttendanceSystem = () => {
    const EmployeeLocationModal = ({ employee, onClose }) => {
      useEffect(() => {
        if (employee && employee.latitude && employee.longitude) {
+         const DefaultIcon = L.icon({
+           iconUrl: markerIcon,
+           shadowUrl: markerShadow,
+           iconSize: [25, 41],
+           iconAnchor: [12, 41],
+           popupAnchor: [1, -34],
+           shadowSize: [41, 41],
+         })
+         L.Marker.prototype.options.icon = DefaultIcon
+
          const map = L.map('map-container').setView(
            [employee.latitude, employee.longitude],
-           13
+           17 
          )
 
          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -544,7 +570,7 @@ const AttendanceSystem = () => {
 
          L.marker([employee.latitude, employee.longitude])
            .addTo(map)
-           .bindPopup(employee.name)
+           .bindPopup(`<b>${employee.name}</b><br>Precise Location`)
            .openPopup()
 
          return () => map.remove()
