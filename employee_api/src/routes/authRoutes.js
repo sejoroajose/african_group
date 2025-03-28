@@ -94,8 +94,8 @@ router.post(
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: 'african-group-tau.vercel.app', 
-        expectedRPID: process.env.HOSTNAME, 
+        expectedOrigin: 'african-group-tau.vercel.app',
+        expectedRPID: 'african-group-tau.vercel.app',
         requireUserVerification: true,
       })
 
