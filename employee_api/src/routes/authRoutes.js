@@ -7,6 +7,7 @@ import DeviceMiddleware from '../middlewares/deviceCheck.js'
 import TimeHelper from '../utils/timeHelper.js'
 import * as fido2 from '@simplewebauthn/server'
 import CredentialHelper from '../utils/credentialHelper.js'
+import base64url from 'base64url'
 
 const router = express.Router()
 
