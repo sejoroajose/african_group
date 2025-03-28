@@ -10,11 +10,6 @@ import attendanceRoutes from './routes/attendanceRoutes.js'
 const app = express()
 
 app.use(helmet()) 
-app.use((req, res, next) => {
-  console.log('CORS - Origin:', req.headers.origin)
-  console.log('CORS - Allowed Origins:', process.env.ALLOWED_ORIGINS)
-  next()
-})
 app.use(
   cors({
     origin: 'https://african-group-tau.vercel.app',
