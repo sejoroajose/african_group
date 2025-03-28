@@ -41,11 +41,13 @@ router.get(
 router.get('/daily', async (req, res) => {
   try {
     const dateParam = req.query.date
-    const targetDate = dateParam ? new Date(dateParam) : new Date()
+    console.log('Received Date Parameter:', dateParam)
 
-    if (isNaN(targetDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid date format' })
-    }
+    const targetDate = dateParam
+      ? new Date(dateParam + 'T00:00:00') 
+      : new Date()
+
+    console.log('Parsed Target Date (Local):', targetDate.toISOString())
 
     const startOfDay = new Date(targetDate)
     startOfDay.setHours(0, 0, 0, 0)
@@ -53,10 +55,20 @@ router.get('/daily', async (req, res) => {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
+    const utcStartOfDay = new Date(startOfDay.toUTCString())
+    const utcEndOfDay = new Date(endOfDay.toUTCString())
+
+    console.log('Start of Day (Local):', startOfDay.toISOString())
+    console.log('Start of Day (UTC):', utcStartOfDay.toISOString())
+    console.log('End of Day (Local):', endOfDay.toISOString())
+    console.log('End of Day (UTC):', utcEndOfDay.toISOString())
+
     const dailyRecords = await AttendanceService.getDailyAttendance(
-      startOfDay,
-      endOfDay
+      utcStartOfDay,
+      utcEndOfDay
     )
+
+    console.log('Records to Send:', dailyRecords.length)
 
     res.status(200).json(dailyRecords)
   } catch (error) {

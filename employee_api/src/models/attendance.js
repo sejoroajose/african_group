@@ -112,12 +112,24 @@ class Attendance {
 
   static async findByDateRange(startDate, endDate) {
     try {
+      console.log('Database Query Details:')
+      console.log('Start Date:', startDate)
+      console.log('End Date:', endDate)
+
       const query = `
-      SELECT * FROM attendance_records 
+      SELECT * FROM attendance_records
       WHERE timestamp BETWEEN $1 AND $2
       ORDER BY timestamp
     `
+
+      console.log('Executing Query:', query)
+      console.log('Query Parameters:', [startDate, endDate])
+
       const result = await db.pool.query(query, [startDate, endDate])
+
+      console.log('Query Result Rows:', result.rows.length)
+      console.log('First Row (if any):', result.rows[0] || 'No rows')
+
       return result.rows
     } catch (error) {
       console.error('Error fetching attendance records:', error)
