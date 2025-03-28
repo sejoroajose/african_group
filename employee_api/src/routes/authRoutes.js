@@ -75,79 +75,59 @@ router.post(
   '/registerResponse',
   DeviceMiddleware.validatePlatform,
   async (req, res) => {
-    const { employeeId, challenge, ...credentialData } = req.body
-
     try {
+      const { employeeId, challenge, ...credential } = req.body
+
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID is required' })
       }
 
       if (!challenge) {
-        return res.status(400).json({ error: 'Challenge is required' })
+        return res.status(400).json({ error: 'Challenge is missing' })
       }
 
-      if (!credentialData || Object.keys(credentialData).length === 0) {
-        return res.status(400).json({ error: 'Credential data is missing' })
+      if (!credential || !credential.rawId || !credential.response) {
+        return res.status(400).json({ error: 'Invalid credential format' })
       }
 
-      console.log('Detailed Registration Request', {
-        employeeId,
-        challengeLength: challenge ? challenge.length : 'NO CHALLENGE',
-        credentialDataKeys: Object.keys(credentialData),
-        credentialId: credentialData.id || credentialData.rawId,
-        responseType: credentialData.type,
-        attestationObjectLength:
-          credentialData.response?.attestationObject?.length,
-        clientDataJSONLength: credentialData.response?.clientDataJSON?.length,
+      const verification = await fido2.verifyRegistrationResponse({
+        response: credential,
+        expectedChallenge: challenge,
+        expectedOrigin: 'african-group-tau.vercel.app', 
+        expectedRPID: process.env.HOSTNAME, 
+        requireUserVerification: true,
       })
 
-      const registrationInfo = await WebAuthnService.verifyRegistration(
-        credentialData,
-        challenge
-      )
+      const { verified, registrationInfo } = verification
 
-      if (!registrationInfo.credential.id) {
-        throw new Error('Credential ID could not be normalized')
+      if (!verified) {
+        throw new Error('Verification failed')
       }
 
-      if (!registrationInfo.credential.publicKey) {
-        throw new Error('Public key is required')
+      // Extract credential data safely
+      const aaguid = registrationInfo.aaguid
+      const credentialID = registrationInfo.credential.id
+      const credentialPublicKey = registrationInfo.credential.publicKey
+      const counter = registrationInfo.counter || 0
+
+      if (!credentialID) {
+        throw new Error('Missing credential ID from registration info')
       }
 
-      let createdCredential
-      try {
-        createdCredential = await CredentialModel.create({
-          employeeId,
-          credentialId: registrationInfo.credential.id,
-          publicKey: registrationInfo.credential.publicKey,
-          signCount: registrationInfo.counter,
-          aaguid: registrationInfo.aaguid,
-        })
-      } catch (dbError) {
-        console.error('Credential Creation Error:', {
-          message: dbError.message,
-          stack: dbError.stack,
-          employeeId,
-          credentialId: registrationInfo.credential.id,
-        })
-        throw new Error(`Database error: ${dbError.message}`)
-      }
+      const credentialIDString = base64url.encode(credentialID)
 
-      console.log('Credential Successfully Created', {
+      // Save to database
+      await CredentialModel.create({
         employeeId,
-        credentialId: registrationInfo.credential.id,
+        credentialId: credentialIDString,
+        publicKey: base64url.encode(credentialPublicKey),
+        signCount: counter,
+        aaguid: aaguid,
       })
 
       res.json({ success: true })
     } catch (error) {
-      console.error('Full registration response error:', {
-        message: error.message,
-        stack: error.stack,
-        employeeId,
-        challenge: challenge ? 'Present' : 'Missing',
-        credentialData: JSON.stringify(credentialData),
-      })
-
+      console.error('Error in registerResponse:', error)
       res.status(400).json({
         error: error.message,
         details: error.toString(),
