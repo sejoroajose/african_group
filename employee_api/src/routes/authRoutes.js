@@ -82,7 +82,6 @@ router.post(
     try {
       const { employeeId, challenge, ...credential } = req.body
 
-      // Validate inputs
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID is required' })
       }
@@ -95,7 +94,6 @@ router.post(
         return res.status(400).json({ error: 'Invalid credential format' })
       }
 
-      // Verify registration
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
@@ -110,12 +108,10 @@ router.post(
         throw new Error('Verification failed')
       }
 
-      // Ensure all required data is present
       if (!registrationInfo || !registrationInfo.credential) {
         throw new Error('Missing registration information')
       }
 
-      // Extract credential data safely
       const aaguid = registrationInfo.aaguid
       const credentialID = registrationInfo.credential.id
       const credentialPublicKey = registrationInfo.credential.publicKey
@@ -124,7 +120,6 @@ router.post(
         throw new Error('Missing credential ID from registration info')
       }
 
-      // Prepare data for database
       const credentialData = {
         employee_id: employeeId,
         credential_id: base64url.encode(credentialID),
@@ -136,12 +131,18 @@ router.post(
         last_used_at: null,
       }
 
-      // Create credential
       const newCredential = await CredentialModel.create(credentialData)
 
       res.json({
         success: true,
         credentialId: newCredential.credential_id,
+      })
+
+      console.log('Received AAGUID:', {
+        originalAaguid: aaguid,
+        type: typeof aaguid,
+        base64Decoded: base64url.decode(aaguid),
+        decodedString: base64url.decode(aaguid).toString('hex'),
       })
     } catch (error) {
       console.error('Detailed Error in registerResponse:', {

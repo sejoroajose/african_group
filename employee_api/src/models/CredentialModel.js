@@ -25,14 +25,27 @@ class CredentialModel {
   }
 
   sanitizeAaguid(aaguid) {
-    if (
-      !aaguid ||
-      aaguid === '00000000-0000-0000-0000-000000000000' ||
-      aaguid === 'MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAw'
-    ) {
+    if (!aaguid) return null
+
+    try {
+      if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          aaguid
+        )
+      ) {
+        return aaguid
+      }
+      const decodedAaguid = base64url.decode(aaguid)
+
+      const uuid = Buffer.from(decodedAaguid)
+        .toString('hex')
+        .replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5')
+
+      return uuid
+    } catch (error) {
+      console.error('AAGUID conversion error:', error)
       return null
     }
-    return aaguid
   }
 
   toInsertQuery() {
