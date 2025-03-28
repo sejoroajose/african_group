@@ -320,10 +320,17 @@ const AttendanceSystem = () => {
 
     try {
       const upperCaseEmployeeId = employeeId.toUpperCase()
-      const employeeRes = await fetch(
-        `${BASE_URL}/auth/employee/${upperCaseEmployeeId}`
-      )
-      if (!employeeRes.ok) throw new Error('Employee not found')
+      const employeeRes = await fetch(`${BASE_URL}/auth/employee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: upperCaseEmployeeId }),
+      })
+
+      if (!employeeRes.ok) {
+        const errorText = await employeeRes.text()
+        console.error('Employee verification error:', errorText)
+        throw new Error('Employee not found')
+      }
 
       const beginAuthEndpoint = `${BASE_URL}/auth/signinRequest`
 
