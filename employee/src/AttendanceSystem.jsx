@@ -762,8 +762,8 @@ const AttendanceSystem = () => {
                     {getTimeIcon()}
                     <span className="font-medium">
                       {new Date().getHours() < 12
-                        ? 'Good Morning! Please sign in.'
-                        : 'Good Afternoon! Please sign out.'}
+                        ? 'Good Morning!'
+                        : 'Good Afternoon!'}
                     </span>
                   </div>
                   {locationType === 'office' ? (
