@@ -4,7 +4,7 @@ import base64url from 'base64url'
 
 const WebAuthnService = {
   CONFIG: {
-    RP_NAME: 'Employee Authentication System',
+    RP_NAME: 'African Group NG Employee Attendance System',
     TIMEOUT: 30 * 60 * 1000,
     SUPPORTED_ALGORITHMS: [-7, -257],
   },
@@ -13,7 +13,7 @@ const WebAuthnService = {
     try {
       return await fido2.generateRegistrationOptions({
         rpName: this.CONFIG.RP_NAME,
-        rpID: 'process.env.HOSTNAME',
+        rpID: 'https://african-group-tau.vercel.app',
         userID: isoUint8Array.fromUTF8String(user.employee_id),
         userName: user.employee_id,
         displayName: user.name,

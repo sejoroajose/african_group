@@ -402,10 +402,15 @@ const AttendanceSystem = () => {
      try {
        setError('')
        setLoading(true)
+
+       console.log('Fetching attendance records')
+       console.log('Base URL:', BASE_URL)
+       console.log('Date:', date)
+
        const response = await fetch(
          `${BASE_URL}/attendance/daily?date=${date}`,
          {
-           credentials: 'include', 
+           credentials: 'include',
            method: 'GET',
            headers: {
              'Content-Type': 'application/json',
@@ -413,11 +418,23 @@ const AttendanceSystem = () => {
          }
        )
 
+       console.log('Response status:', response.status)
+       console.log(
+         'Response headers:',
+         Object.fromEntries(response.headers.entries())
+       )
+
        if (!response.ok) {
-         throw new Error('Failed to fetch attendance records')
+         const errorText = await response.text()
+         console.error('Error response body:', errorText)
+
+         throw new Error(
+           `Failed to fetch attendance records. Status: ${response.status}, ${errorText}`
+         )
        }
 
        const data = await response.json()
+       console.log('Received data:', data)
 
        if (Array.isArray(data)) {
          const adjustedRecords = data.map((record) => {
@@ -452,6 +469,7 @@ const AttendanceSystem = () => {
          setError('No attendance recorded for today yet.')
        }
      } catch (error) {
+       console.error('Full error object:', error)
        setError('Failed to fetch attendance records: ' + error.message)
        console.error('Error fetching attendance records:', error)
        setAttendanceRecords({ office: [], site: [], remote: [] })
