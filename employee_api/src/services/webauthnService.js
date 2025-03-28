@@ -47,13 +47,50 @@ const WebAuthnService = {
     }
   },
 
+  normalizeCredentialId(credentialId) {
+    try {
+      if (credentialId === undefined || credentialId === null) {
+        throw new Error('Credential ID is undefined or null')
+      }
+
+      if (typeof credentialId === 'string') {
+        return base64url.encode(base64url.decode(credentialId))
+      }
+
+      if (credentialId instanceof Buffer) {
+        return base64url.encode(credentialId)
+      }
+
+      if (credentialId instanceof ArrayBuffer) {
+        return base64url.encode(Buffer.from(credentialId))
+      }
+
+      if (credentialId.type === 'Buffer' && Array.isArray(credentialId.data)) {
+        return base64url.encode(Buffer.from(credentialId.data))
+      }
+
+      if (Array.isArray(credentialId) || ArrayBuffer.isView(credentialId)) {
+        return base64url.encode(Buffer.from(credentialId))
+      }
+
+      throw new Error('Unable to normalize credential ID')
+    } catch (error) {
+      console.error('Credential ID normalization error:', error)
+      throw error
+    }
+  },
+
   async verifyRegistration(credential, challenge) {
     try {
+      if (!credential || typeof credential !== 'object') {
+        throw new Error('Invalid credential object')
+      }
+
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: this.CONFIG.ORIGIN,
-        expectedRPID: this.CONFIG.RP_ID,
+        expectedOrigin: this.CONFIG.ORIGIN, 
+        expectedRPID: this.CONFIG.RP_ID, 
         requireUserVerification: true,
       })
 
@@ -61,15 +98,21 @@ const WebAuthnService = {
         throw new Error('Registration verification failed')
       }
 
+      const registrationInfo = verification.registrationInfo
+      if (!registrationInfo) {
+        throw new Error('No registration information found')
+      }
+
+      const credentialId = credential.id || credential.rawId
+      const publicKey = registrationInfo.credentialPublicKey
+
       return {
         credential: {
-          id: this.normalizeCredentialId(credential.id),
-          publicKey: base64url.encode(
-            verification.registrationInfo.credentialPublicKey
-          ),
+          id: this.normalizeCredentialId(credentialId),
+          publicKey: publicKey ? base64url.encode(publicKey) : undefined,
         },
-        counter: verification.registrationInfo.counter,
-        aaguid: verification.registrationInfo.aaguid,
+        counter: registrationInfo.counter,
+        aaguid: registrationInfo.aaguid
       }
     } catch (error) {
       console.error('Registration verification error:', error)

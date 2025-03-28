@@ -79,14 +79,35 @@ router.post(
     try {
       const { employeeId, challenge, ...credentialData } = req.body
 
-      if (!employeeId || !challenge) {
-        return res.status(400).json({ error: 'Missing required parameters' })
+      if (!employeeId) {
+        return res.status(400).json({ error: 'Employee ID is required' })
       }
+
+      if (!challenge) {
+        return res.status(400).json({ error: 'Challenge is required' })
+      }
+
+      if (!credentialData || Object.keys(credentialData).length === 0) {
+        return res.status(400).json({ error: 'Credential data is missing' })
+      }
+
+      console.log(
+        'Incoming credential data:',
+        JSON.stringify(credentialData, null, 2)
+      )
 
       const registrationInfo = await WebAuthnService.verifyRegistration(
         credentialData,
         challenge
       )
+
+      if (!registrationInfo.credential.id) {
+        throw new Error('Credential ID could not be normalized')
+      }
+
+      if (!registrationInfo.credential.publicKey) {
+        throw new Error('Public key is required')
+      }
 
       await CredentialModel.create({
         employeeId,
@@ -98,8 +119,13 @@ router.post(
 
       res.json({ success: true })
     } catch (error) {
-      console.error('Registration response error:', error)
-      res.status(400).json({ error: error.message })
+      console.error('Full registration response error:', error)
+
+      res.status(400).json({
+        error: error.message,
+        details: error.toString(),
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      })
     }
   }
 )
