@@ -82,55 +82,79 @@ const WebAuthnService = {
 
   async verifyRegistration(credential, challenge) {
     try {
-      // Validate that credential is a non-null object
-      if (!credential || typeof credential !== 'object') {
-        throw new Error('Invalid credential object');
+      // Extensive validation
+      if (!credential) {
+        throw new Error('Credential object is undefined or null');
       }
 
-      // Pass the full credential object to the library
-      const verification = await fido2.verifyRegistrationResponse({
-        credential: credential,
+      // Check for id or rawId
+      const credentialId = credential.id || credential.rawId;
+      if (!credentialId) {
+        console.error('Full Credential Object:', JSON.stringify(credential, null, 2));
+        throw new Error('Credential ID is missing or undefined');
+      }
+
+      // Ensure response object exists
+      if (!credential.response) {
+        throw new Error('Credential response is missing');
+      }
+
+      // Check for required response properties
+      if (!credential.response.attestationObject) {
+        throw new Error('Attestation object is missing');
+      }
+      if (!credential.response.clientDataJSON) {
+        throw new Error('Client data JSON is missing');
+      }
+
+      const verificationOptions = {
+        response: {
+          attestationObject: base64url.toBuffer(
+            credential.response.attestationObject
+          ),
+          clientDataJSON: base64url.toBuffer(
+            credential.response.clientDataJSON
+          ),
+        },
         expectedChallenge: challenge,
         expectedOrigin: this.CONFIG.ORIGIN,
         expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
-      });
+        credential: {
+          id: base64url.toBuffer(credentialId),
+        },
+      }
 
-      // Check if verification succeeded
+      const verification = await fido2.verifyRegistrationResponse(
+        verificationOptions
+      )
+
       if (!verification.verified) {
         throw new Error('Registration verification failed');
       }
 
-      // Extract registration info
-      const registrationInfo = verification.registrationInfo;
+      const registrationInfo = verification.registrationInfo
       if (!registrationInfo) {
         throw new Error('No registration information found');
       }
 
-      const publicKey = registrationInfo.credentialPublicKey;
-      if (!publicKey) {
-        throw new Error('Credential public key is missing');
-      }
-
-      // Return the normalized credential data
       return {
         credential: {
-          id: base64url.encode(registrationInfo.credentialID),
-          publicKey: base64url.encode(publicKey),
+          id: base64url.encode(verificationOptions.credential.id),
+          publicKey: base64url.encode(registrationInfo.credentialPublicKey),
         },
         counter: registrationInfo.counter,
         aaguid: registrationInfo.aaguid,
-      };
+      }
     } catch (error) {
       console.error('Detailed registration verification error:', {
         message: error.message,
         stack: error.stack,
-        credential: JSON.stringify(credential),
-      });
-      throw error;
+        credential: JSON.stringify(credential, null, 2),
+      })
+      throw error
     }
   },
-
   async generateAuthenticationOptions() {
     try {
       return await fido2.generateAuthenticationOptions({
