@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import db from '../config/database.js'
 
-class Credential {
+class CredentialModel {
   constructor({
     id = uuidv4(),
     employee_id,
@@ -98,4 +98,4 @@ class Credential {
   }
 }
 
-export default Credential
+export default CredentialModel
