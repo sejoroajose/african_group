@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import db from '../config/database.js'
+import base64url from 'base64url'
 
 class CredentialModel {
   constructor({
