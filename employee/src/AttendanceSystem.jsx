@@ -176,7 +176,7 @@ const AttendanceSystem = () => {
           styleElement.remove()
         }
       }
-    }  
+    }
   }, [locationType])
 
   useEffect(() => {
@@ -372,7 +372,7 @@ const AttendanceSystem = () => {
       const credentialResponse = {
         id: credential.id,
         rawId: arrayBufferToBase64url(credential.rawId),
-        type: credential.type, 
+        type: credential.type,
         response: {
           clientDataJSON: arrayBufferToBase64url(
             credential.response.clientDataJSON
@@ -433,114 +433,112 @@ const AttendanceSystem = () => {
     }
   }
 
-  
-    
-    const parseTimestamp = (timestamp) => {
-      try {
-        const date = new Date(timestamp)
+  const parseTimestamp = (timestamp) => {
+    try {
+      const date = new Date(timestamp)
 
-        if (!isNaN(date.getTime())) {
-          return date
-        }
-
-        if (typeof timestamp === 'string') {
-          const parsedDate = new Date(Date.parse(timestamp))
-
-          if (!isNaN(parsedDate.getTime())) {
-            return parsedDate
-          }
-        }
-
-        console.warn('Invalid timestamp:', timestamp)
-        return new Date()
-      } catch (error) {
-        console.error('Error parsing timestamp:', error)
-        return new Date()
+      if (!isNaN(date.getTime())) {
+        return date
       }
+
+      if (typeof timestamp === 'string') {
+        const parsedDate = new Date(Date.parse(timestamp))
+
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate
+        }
+      }
+
+      console.warn('Invalid timestamp:', timestamp)
+      return new Date()
+    } catch (error) {
+      console.error('Error parsing timestamp:', error)
+      return new Date()
     }
+  }
 
-   const fetchAttendanceRecords = async (date) => {
-     try {
-       setError('')
-       setLoading(true)
+  const fetchAttendanceRecords = async (date) => {
+    try {
+      setError('')
+      setLoading(true)
 
-       console.log('Fetching attendance records')
-       console.log('Base URL:', BASE_URL)
-       console.log('Date:', date)
+      console.log('Fetching attendance records')
+      console.log('Base URL:', BASE_URL)
+      console.log('Date:', date)
 
-       const response = await fetch(
-         `${BASE_URL}/attendance/daily?date=${date}`,
-         {
-           credentials: 'include',
-           method: 'GET',
-           headers: {
-             'Content-Type': 'application/json',
-           },
-         }
-       )
+      const response = await fetch(
+        `${BASE_URL}/attendance/daily?date=${date}`,
+        {
+          credentials: 'include',
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
 
-       console.log('Response status:', response.status)
+      console.log('Response status:', response.status)
 
-       if (!response.ok) {
-         const errorText = await response.text()
-         console.error('Error response body:', errorText)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response body:', errorText)
 
-         throw new Error(
-           `Failed to fetch attendance records. Status: ${response.status}, ${errorText}`
-         )
-       }
+        throw new Error(
+          `Failed to fetch attendance records. Status: ${response.status}, ${errorText}`
+        )
+      }
 
-       const data = await response.json()
-       console.log('Received data:', data)
+      const data = await response.json()
+      console.log('Received data:', data)
 
-       if (Array.isArray(data)) {
-         const adjustedRecords = data.map((record) => {
-           try {
-             const adjustedTime = parseTimestamp(record.timestamp)
-             return {
-               ...record,
-               timestamp: adjustedTime.toISOString(),
-             }
-           } catch (parseError) {
-             console.error('Error parsing record timestamp:', parseError)
-             return {
-               ...record,
-               timestamp: new Date().toISOString(), // Fallback to current time
-             }
-           }
-         })
+      if (Array.isArray(data)) {
+        const adjustedRecords = data.map((record) => {
+          try {
+            const adjustedTime = parseTimestamp(record.timestamp)
+            return {
+              ...record,
+              timestamp: adjustedTime.toISOString(),
+            }
+          } catch (parseError) {
+            console.error('Error parsing record timestamp:', parseError)
+            return {
+              ...record,
+              timestamp: new Date().toISOString(), // Fallback to current time
+            }
+          }
+        })
 
-         const officeRecords = adjustedRecords.filter(
-           (r) => r.location_type === 'office'
-         )
-         const siteRecords = adjustedRecords.filter(
-           (r) => r.location_type === 'site'
-         )
-         const remoteRecords = adjustedRecords.filter(
-           (r) => r.location_type === 'remote'
-         )
+        const officeRecords = adjustedRecords.filter(
+          (r) => r.location_type === 'office'
+        )
+        const siteRecords = adjustedRecords.filter(
+          (r) => r.location_type === 'site'
+        )
+        const remoteRecords = adjustedRecords.filter(
+          (r) => r.location_type === 'remote'
+        )
 
-         setAttendanceRecords({
-           office: officeRecords,
-           site: siteRecords,
-           remote: remoteRecords,
-         })
+        setAttendanceRecords({
+          office: officeRecords,
+          site: siteRecords,
+          remote: remoteRecords,
+        })
 
-         if (adjustedRecords.length === 0) {
-           setError('No attendance recorded for today yet.')
-         }
-       } else {
-         setError('No attendance recorded for today yet.')
-       }
-     } catch (error) {
-       console.error('Full error object:', error)
-       setError('Failed to fetch attendance records: ' + error.message)
-       console.error('Error fetching attendance records:', error)
-       setAttendanceRecords({ office: [], site: [], remote: [] })
-     } finally {
-       setLoading(false)
-     }
-   }
+        if (adjustedRecords.length === 0) {
+          setError('No attendance recorded for today yet.')
+        }
+      } else {
+        setError('No attendance recorded for today yet.')
+      }
+    } catch (error) {
+      console.error('Full error object:', error)
+      setError('Failed to fetch attendance records: ' + error.message)
+      console.error('Error fetching attendance records:', error)
+      setAttendanceRecords({ office: [], site: [], remote: [] })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getTimeStyle = (time, type) => {
     const recordDate = new Date(time)
@@ -576,10 +574,14 @@ const AttendanceSystem = () => {
     }
   }
 
-  const getSubmitButtonText = () => {
-    const now = new Date()
-    const hours = now.getHours()
-    return hours < 12 ? 'Sign-In' : 'Sign-Out'
+  const getSubmitButtonText = async (employeeId, locationType) => {
+    try {
+      const type = await determineAttendanceType(employeeId, locationType)
+      return type === 'sign-in' ? 'Sign-In' : 'Sign-Out'
+    } catch (error) {
+      console.error('Error determining attendance button text:', error)
+      return 'Sign-In'
+    }
   }
 
   const getTimeIcon = () => {
@@ -592,67 +594,66 @@ const AttendanceSystem = () => {
     )
   }
 
-   const EmployeeLocationModal = ({ employee, onClose }) => {
-     const mapContainer = useRef(null)
-     const map = useRef(null)
+  const EmployeeLocationModal = ({ employee, onClose }) => {
+    const mapContainer = useRef(null)
+    const map = useRef(null)
 
-     if (!employee) return null
+    if (!employee) return null
 
-     useEffect(() => {
-       if (employee?.latitude && employee?.longitude) {
-         if (!map.current) {
-           map.current = new mapboxgl.Map({
-             container: mapContainer.current,
-             style: 'mapbox://styles/mapbox/streets-v12',
-             center: [employee.longitude, employee.latitude],
-             zoom: 13,
-           })
+    useEffect(() => {
+      if (employee?.latitude && employee?.longitude) {
+        if (!map.current) {
+          map.current = new mapboxgl.Map({
+            container: mapContainer.current,
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [employee.longitude, employee.latitude],
+            zoom: 13,
+          })
 
-           new mapboxgl.Marker()
-             .setLngLat([employee.longitude, employee.latitude])
-             .addTo(map.current)
-         }
-       }
+          new mapboxgl.Marker()
+            .setLngLat([employee.longitude, employee.latitude])
+            .addTo(map.current)
+        }
+      }
 
-       return () => {
-         if (map.current) {
-           map.current.remove()
-           map.current = null
-         }
-       }
-     }, [employee]) 
+      return () => {
+        if (map.current) {
+          map.current.remove()
+          map.current = null
+        }
+      }
+    }, [employee])
 
-     return (
-       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-         <div className="bg-white rounded-lg p-6 max-w-2xl w-full relative">
-           <button
-             onClick={onClose}
-             className="absolute top-4 right-4 text-gray-600 hover:text-gray-900"
-           >
-             Close
-           </button>
-           <h2 className="text-xl font-bold mb-4 flex items-center">
-             <MapPin className="mr-2 text-red-500" />
-             This attendance was registered by {employee.name} - Location
-             Details
-           </h2>
-           <div className="w-full h-96">
-             <div
-               ref={mapContainer}
-               className="w-full h-full"
-               style={{ borderRadius: '8px' }}
-             />
-           </div>
-           <div className="mt-4 text-sm text-gray-600">
-             <p>Location Type: {employee.location_type}</p>
-             <p>Latitude: {employee.latitude}</p>
-             <p>Longitude: {employee.longitude}</p>
-             {employee.address && <p>Address: {employee.address}</p>}
-           </div>
-         </div>
-       </div>
-     )
-   }
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-600 hover:text-gray-900"
+          >
+            Close
+          </button>
+          <h2 className="text-xl font-bold mb-4 flex items-center">
+            <MapPin className="mr-2 text-red-500" />
+            This attendance was registered by {employee.name} - Location Details
+          </h2>
+          <div className="w-full h-96">
+            <div
+              ref={mapContainer}
+              className="w-full h-full"
+              style={{ borderRadius: '8px' }}
+            />
+          </div>
+          <div className="mt-4 text-sm text-gray-600">
+            <p>Location Type: {employee.location_type}</p>
+            <p>Latitude: {employee.latitude}</p>
+            <p>Longitude: {employee.longitude}</p>
+            {employee.address && <p>Address: {employee.address}</p>}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
