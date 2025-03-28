@@ -13,7 +13,7 @@ const WebAuthnService = {
     try {
       return await fido2.generateRegistrationOptions({
         rpName: this.CONFIG.RP_NAME,
-        rpID: 'https://african-group-tau.vercel.app',
+        rpID: 'african-group-tau.vercel.app',
         userID: isoUint8Array.fromUTF8String(user.employee_id),
         userName: user.employee_id,
         displayName: user.name,
