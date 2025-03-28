@@ -73,6 +73,8 @@ router.post(
     }
   }
 )
+
+
 router.post(
   '/registerResponse',
   DeviceMiddleware.validatePlatform,
@@ -80,6 +82,7 @@ router.post(
     try {
       const { employeeId, challenge, ...credential } = req.body
 
+      // Validate inputs
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID is required' })
       }
@@ -92,11 +95,12 @@ router.post(
         return res.status(400).json({ error: 'Invalid credential format' })
       }
 
+      // Verify registration
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
         expectedOrigin: new URL(process.env.ORIGIN).origin,
-        expectedRPID: new URL(process.env.ORIGIN).hostname, 
+        expectedRPID: new URL(process.env.ORIGIN).hostname,
         requireUserVerification: true,
       })
 
@@ -106,28 +110,46 @@ router.post(
         throw new Error('Verification failed')
       }
 
+      // Ensure all required data is present
+      if (!registrationInfo || !registrationInfo.credential) {
+        throw new Error('Missing registration information')
+      }
+
+      // Extract credential data safely
       const aaguid = registrationInfo.aaguid
       const credentialID = registrationInfo.credential.id
       const credentialPublicKey = registrationInfo.credential.publicKey
-      const counter = registrationInfo.counter || 0
 
       if (!credentialID) {
         throw new Error('Missing credential ID from registration info')
       }
 
-      const credentialIDString = base64url.encode(credentialID)
+      // Prepare data for database
+      const credentialData = {
+        employee_id: employeeId,
+        credential_id: base64url.encode(credentialID),
+        public_key: base64url.encode(credentialPublicKey),
+        sign_count: registrationInfo.counter || 0,
+        aaguid: aaguid ? base64url.encode(aaguid) : null,
+        platform: credential.authenticatorAttachment || null,
+        created_at: new Date(),
+        last_used_at: null,
+      }
 
-      await CredentialModel.create({
-        employeeId,
-        credentialId: credentialIDString,
-        publicKey: base64url.encode(credentialPublicKey),
-        signCount: counter,
-        aaguid: aaguid,
+      // Create credential
+      const newCredential = await CredentialModel.create(credentialData)
+
+      res.json({
+        success: true,
+        credentialId: newCredential.credential_id,
+      })
+    } catch (error) {
+      console.error('Detailed Error in registerResponse:', {
+        message: error.message,
+        stack: error.stack,
+        originalError: error,
       })
 
-      res.json({ success: true })
-    } catch (error) {
-      console.error('Error in registerResponse:', error)
       res.status(400).json({
         error: error.message,
         details: error.toString(),
