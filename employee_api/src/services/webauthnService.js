@@ -17,7 +17,7 @@ const WebAuthnService = {
     try {
       return await fido2.generateRegistrationOptions({
         rpName: this.CONFIG.RP_NAME,
-        rpID: this.CONFIG.RP_ID, 
+        rpID: this.CONFIG.RP_ID,
         userID: isoUint8Array.fromUTF8String(user.employee_id),
         userName: user.employee_id,
         displayName: user.name,
@@ -52,8 +52,8 @@ const WebAuthnService = {
       const verification = await fido2.verifyRegistrationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: this.CONFIG.ORIGIN, 
-        expectedRPID: this.CONFIG.RP_ID, 
+        expectedOrigin: this.CONFIG.ORIGIN,
+        expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
       })
 
@@ -61,7 +61,16 @@ const WebAuthnService = {
         throw new Error('Registration verification failed')
       }
 
-      return verification.registrationInfo
+      return {
+        credential: {
+          id: this.normalizeCredentialId(credential.id),
+          publicKey: base64url.encode(
+            verification.registrationInfo.credentialPublicKey
+          ),
+        },
+        counter: verification.registrationInfo.counter,
+        aaguid: verification.registrationInfo.aaguid,
+      }
     } catch (error) {
       console.error('Registration verification error:', error)
       throw error
@@ -72,7 +81,7 @@ const WebAuthnService = {
     try {
       return await fido2.generateAuthenticationOptions({
         timeout: this.CONFIG.TIMEOUT,
-        rpID: this.CONFIG.RP_ID, 
+        rpID: this.CONFIG.RP_ID,
         userVerification: 'required',
       })
     } catch (error) {
@@ -86,8 +95,8 @@ const WebAuthnService = {
       const verification = await fido2.verifyAuthenticationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: this.CONFIG.ORIGIN, 
-        expectedRPID: this.CONFIG.RP_ID, 
+        expectedOrigin: this.CONFIG.ORIGIN,
+        expectedRPID: this.CONFIG.RP_ID,
         credential: {
           id: this.normalizeCredentialId(storedCredential.credential_id),
           publicKey: storedCredential.public_key,

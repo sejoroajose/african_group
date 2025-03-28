@@ -77,14 +77,14 @@ router.post(
   DeviceMiddleware.validatePlatform,
   async (req, res) => {
     try {
-      const { employeeId, challenge, ...credential } = req.body
+      const { employeeId, challenge, ...credentialData } = req.body
 
       if (!employeeId || !challenge) {
         return res.status(400).json({ error: 'Missing required parameters' })
       }
 
       const registrationInfo = await WebAuthnService.verifyRegistration(
-        credential,
+        credentialData,
         challenge
       )
 
