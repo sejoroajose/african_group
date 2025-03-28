@@ -79,39 +79,50 @@ const WebAuthnService = {
       throw error
     }
   },
-
   async verifyRegistration(credential, challenge) {
     try {
-      // Validate input
       if (!credential || typeof credential !== 'object') {
         throw new Error('Invalid credential object')
       }
 
-      // Verify the registration response
-      const verification = await fido2.verifyRegistrationResponse({
+      if (!credential.id && !credential.rawId) {
+        throw new Error('Credential ID is missing')
+      }
+
+      const verificationOptions = {
         response: {
-          attestationObject: base64url.decode(
+          attestationObject: base64url.toBuffer(
             credential.response.attestationObject
           ),
-          clientDataJSON: base64url.decode(credential.response.clientDataJSON),
+          clientDataJSON: base64url.toBuffer(
+            credential.response.clientDataJSON
+          ),
         },
         expectedChallenge: challenge,
         expectedOrigin: this.CONFIG.ORIGIN,
         expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
-      })
+      }
+
+      if (credential.id || credential.rawId) {
+        verificationOptions.credential = {
+          id: base64url.toBuffer(credential.id || credential.rawId),
+        }
+      }
+
+      const verification = await fido2.verifyRegistrationResponse(
+        verificationOptions
+      )
 
       if (!verification.verified) {
         throw new Error('Registration verification failed')
       }
 
-      // Ensure registration info exists
       const registrationInfo = verification.registrationInfo
       if (!registrationInfo) {
         throw new Error('No registration information found')
       }
 
-      // Extract and encode the public key
       const publicKey = registrationInfo.credentialPublicKey
       if (!publicKey) {
         throw new Error('Credential public key is missing')
@@ -119,7 +130,7 @@ const WebAuthnService = {
 
       return {
         credential: {
-          id: this.normalizeCredentialId(credential.id || credential.rawId),
+          id: base64url.encode(verificationOptions.credential.id),
           publicKey: base64url.encode(publicKey),
         },
         counter: registrationInfo.counter,
@@ -134,7 +145,6 @@ const WebAuthnService = {
       throw error
     }
   },
-
   async generateAuthenticationOptions() {
     try {
       return await fido2.generateAuthenticationOptions({

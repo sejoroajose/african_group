@@ -405,9 +405,18 @@ const AttendanceSystem = () => {
 
   
     const parseTimestamp = (timestamp) => {
-      const date = new Date(timestamp)
-      date.setHours(date.getHours() - 1)
-      return date
+      if (!timestamp) {
+        return new Date()
+      }
+
+      const parsedDate = new Date(timestamp)
+
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate
+      }
+
+      console.warn('Invalid timestamp:', timestamp)
+      return new Date()
     }
 
    const fetchAttendanceRecords = async (date) => {

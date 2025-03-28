@@ -71,15 +71,13 @@ router.post(
     }
   }
 )
-
 router.post(
   '/registerResponse',
   DeviceMiddleware.validatePlatform,
   async (req, res) => {
-    try {
-      const { employeeId, challenge, ...credentialData } = req.body
+    const { employeeId, challenge, ...credentialData } = req.body
 
-      // Comprehensive validation
+    try {
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID is required' })
       }
@@ -92,7 +90,6 @@ router.post(
         return res.status(400).json({ error: 'Credential data is missing' })
       }
 
-      // Detailed logging
       console.log('Registration Request Details:', {
         employeeId,
         challengeLength: challenge.length,
@@ -108,7 +105,6 @@ router.post(
         challenge
       )
 
-      // Additional validation of registration info
       if (!registrationInfo.credential.id) {
         throw new Error('Credential ID could not be normalized')
       }
@@ -117,23 +113,32 @@ router.post(
         throw new Error('Public key is required')
       }
 
-      const createdCredential = await CredentialModel.create({
-        employeeId,
-        credentialId: registrationInfo.credential.id,
-        publicKey: registrationInfo.credential.publicKey,
-        signCount: registrationInfo.counter,
-        aaguid: registrationInfo.aaguid,
-      })
+      let createdCredential
+      try {
+        createdCredential = await CredentialModel.create({
+          employeeId,
+          credentialId: registrationInfo.credential.id,
+          publicKey: registrationInfo.credential.publicKey,
+          signCount: registrationInfo.counter,
+          aaguid: registrationInfo.aaguid,
+        })
+      } catch (dbError) {
+        console.error('Credential Creation Error:', {
+          message: dbError.message,
+          stack: dbError.stack,
+          employeeId,
+          credentialId: registrationInfo.credential.id,
+        })
+        throw new Error(`Database error: ${dbError.message}`)
+      }
 
-      // Log successful credential creation
       console.log('Credential Successfully Created', {
         employeeId,
-        credentialId: createdCredential.credentialId,
+        credentialId: createdCredential.credential_id,
       })
 
       res.json({ success: true })
     } catch (error) {
-      // Extensive error logging
       console.error('Full registration response error:', {
         message: error.message,
         stack: error.stack,
@@ -142,7 +147,6 @@ router.post(
         credentialData: JSON.stringify(credentialData),
       })
 
-      // Provide more detailed error response
       res.status(400).json({
         error: error.message,
         details: error.toString(),
