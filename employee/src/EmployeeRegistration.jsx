@@ -2,10 +2,7 @@ import React, { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { UserCircle, Fingerprint, AlertCircle, CheckCircle } from 'lucide-react'
 
-const isAndroid = /Android/i.test(navigator.userAgent)
-const BASE_URL = isAndroid
-  ? 'https://mcyouniverse-employee-android.onrender.com'
-  : 'https://api.mcyouniverse.com'
+const BASE_URL = 'http://localhost:3000'
 
 const EmployeeRegistration = () => {
   const [employeeId, setEmployeeId] = useState('')
@@ -17,10 +14,13 @@ const EmployeeRegistration = () => {
     try {
       setError('')
       setRegistrationStatus('')
-      const encodedId = encodeURIComponent(employeeId)
-      const response = await fetch(
-        `https://api.mcyouniverse.com/api/employees/${encodedId}`
-      )
+      const response = await fetch(`${BASE_URL}/auth/employee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ employee_id: employeeId }),
+      })
 
       if (response.ok) {
         const data = await response.json()
@@ -40,12 +40,9 @@ const EmployeeRegistration = () => {
       setError('')
       setRegistrationStatus('')
 
-      // Store challenge for later use
       let challengeStr = ''
 
-      const beginRegistration = isAndroid
-        ? `${BASE_URL}/api/registerRequest`
-        : `${BASE_URL}/api/employees/biometric/begin`
+      const beginRegistration = `${BASE_URL}/auth/registerRequest`
 
       console.log('Making request to:', beginRegistration)
       console.log('With payload:', JSON.stringify({ employeeId }))
@@ -72,23 +69,18 @@ const EmployeeRegistration = () => {
 
       console.log('Received options:', JSON.stringify(options))
 
-      // Save the original challenge string for later
       challengeStr = options.challenge
 
-      // Create a clean copy of options for WebAuthn
       const transformedOptions = structuredClone(options)
 
-      // Convert challenge to ArrayBuffer
       transformedOptions.challenge = base64urlToArrayBuffer(options.challenge)
 
-      // Convert user ID to ArrayBuffer if it exists
       if (transformedOptions.user && transformedOptions.user.id) {
         transformedOptions.user.id = base64urlToArrayBuffer(
           transformedOptions.user.id
         )
       }
 
-      // Convert excludeCredentials IDs to ArrayBuffer
       if (
         transformedOptions.excludeCredentials &&
         Array.isArray(transformedOptions.excludeCredentials)
@@ -109,22 +101,16 @@ const EmployeeRegistration = () => {
 
         console.log('Credential created successfully', credential)
 
-        // Serialize the credential for transmission
         const serializedCredential = publicKeyCredentialToJSON(credential)
         console.log('Serialized credential:', serializedCredential)
 
-        const finishRegistration = isAndroid
-          ? `${BASE_URL}/api/registerResponse`
-          : `${BASE_URL}/api/employees/biometric/finish`
+        const finishRegistration = `${BASE_URL}/auth/registerResponse`
 
-        // For Android, we need to include the original challenge string and employeeId
-        const requestBody = isAndroid
-          ? {
-              ...serializedCredential,
-              challenge: challengeStr, // Use the original challenge string
-              employeeId,
-            }
-          : serializedCredential
+        const requestBody = {
+          employeeId,
+          challenge: challengeStr,
+          ...serializedCredential,
+        }
 
         console.log('Sending to finish endpoint:', finishRegistration)
         console.log('With payload:', JSON.stringify(requestBody))
@@ -217,7 +203,6 @@ const EmployeeRegistration = () => {
         response: {},
       }
 
-      // Add attestation object and client data if they exist
       if (credential.response.attestationObject) {
         result.response.attestationObject = convert(
           credential.response.attestationObject
@@ -240,18 +225,18 @@ const EmployeeRegistration = () => {
   return (
     <div className="max-w-md mx-auto p-4">
       <Card className="border-0 shadow-lg overflow-hidden">
-        <div className="h-2 bg-[#7C050B] w-full"></div>
+        <div className="h-2 bg-[#263238] w-full"></div>
         <div className="flex justify-center py-4 border-b">
           <img
-            src="https://res.cloudinary.com/dnu6az3um/image/upload/v1736111485/logo_fip3gr.svg"
+            src="logo.jpg"
             className="max-w-[180px] h-auto"
             alt="Company Logo"
           />
         </div>
         <CardHeader className="pb-2">
-          <CardTitle className="text-[#7C050B] font-semibold flex items-center gap-2">
+          <CardTitle className="text-[#8BC34A] font-semibold flex items-center gap-2">
             <Fingerprint size={20} />
-            Employee Biometric Credentials Registration
+            Employee Passkey Credentials Registration
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -262,12 +247,12 @@ const EmployeeRegistration = () => {
                 placeholder="Enter Employee ID"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
-                className="w-full p-2 border rounded-lg bg-gray-50 text-gray-800 focus:ring-2 focus:ring-[#7C050B] focus:border-[#7C050B] transition-all"
+                className="w-full p-2 border rounded-lg bg-gray-50 text-gray-800 focus:ring-2 focus:ring-[#8BC34A] focus:border-[#8BC34A] transition-all"
               />
               <button
                 onClick={fetchEmployee}
                 disabled={!employeeId}
-                className="mt-2 w-full bg-[#7C050B] hover:bg-[#5e0409] text-white p-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:hover:bg-[#7C050B]"
+                className="mt-2 w-full bg-[#8BC34A] hover:bg-[#263238] text-white p-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:hover:bg-[#263238]"
               >
                 Find Employee
               </button>
@@ -279,20 +264,28 @@ const EmployeeRegistration = () => {
                   <h3 className="font-medium text-gray-800 mb-2">
                     Employee Details
                   </h3>
-                  <div className="grid grid-cols-[auto_1fr] gap-x-2 text-gray-700">
-                    <span className="font-medium">Name:</span>
-                    <span>{employeeData.name}</span>
-                    <span className="font-medium">ID:</span>
-                    <span>{employeeData.employee_id}</span>
+                  <div className="grid grid-cols-[auto_1fr] text-left gap-x-2 text-gray-700 w-full max-w-full">
+                    <span className="font-medium truncate">Name:</span>
+                    <span className="truncate overflow-hidden">
+                      {employeeData.name}
+                    </span>
+                    <span className="font-medium truncate">ID:</span>
+                    <span className="truncate overflow-hidden">
+                      {employeeData.employee_id}
+                    </span>
+                    <span className="font-medium truncate">Email:</span>
+                    <span className="truncate overflow-hidden">
+                      {employeeData.email}
+                    </span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleBiometricRegistration}
-                  className="w-full bg-[#7C050B] hover:bg-[#5e0409] text-white p-3 rounded-lg font-medium text-center flex items-center justify-center gap-2 transition-all duration-200"
+                  className="w-full bg-[#8BC34A] hover:bg-[#263238] text-white p-3 rounded-lg font-medium text-center flex items-center justify-center gap-2 transition-all duration-200"
                 >
                   <Fingerprint size={18} />
-                  Register Biometrics
+                  Register Passkey
                 </button>
               </div>
             )}

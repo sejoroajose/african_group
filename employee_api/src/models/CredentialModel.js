@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import db from '../config/database.js'
 
 class Credential {
   constructor({
@@ -78,6 +79,22 @@ class Credential {
       `,
       values: [this.sign_count, this.last_used_at, this.credential_id],
     }
+  }
+  static async findByEmployeeId(employee_id) {
+      const query = {
+        text: 'SELECT * FROM webauthn_credentials WHERE employee_id = $1',
+        values: [employee_id],
+      }
+      try {
+        const result = await db.pool.query(query)
+        if (result.rows.length === 0) {
+          return null
+        }
+        return new User(result.rows[0])
+      } catch (error) {
+        console.error('Error querying for employee:', error)
+        throw error
+      }
   }
 }
 

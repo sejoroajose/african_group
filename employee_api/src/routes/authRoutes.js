@@ -2,6 +2,7 @@ import express from 'express'
 import WebAuthnService from '../services/webauthnService.js'
 import UserModel from '../models/user.js'
 import CredentialModel from '../models/credentialModel.js'
+import AttendanceModel from '../models/attendance.js'
 import DeviceMiddleware from '../middlewares/deviceCheck.js'
 import TimeHelper from '../utils/timeHelper.js'
 import CredentialHelper from '../utils/credentialHelper.js'
@@ -25,7 +26,9 @@ router.post('/employee', async (req, res) => {
 
     const userResponse = {
       ...user,
-      credentials: credentials.map(CredentialHelper.formatCredential),
+      credentials: credentials
+        ? credentials.map(CredentialHelper.formatCredential)
+        : [],
     }
 
     req.session.employee_id = employee_id
@@ -135,7 +138,18 @@ router.post(
         challenge,
         id: credentialId,
         authenticationType: signType,
+        locationType,
+        latitude,
+        longitude,
       } = req.body
+
+      if (locationType === 'site' || locationType === 'office') {
+        if (!latitude || !longitude) {
+          return res
+            .status(400)
+            .json({ error: 'Location coordinates are required' })
+        }
+      }
 
       if (!employeeId || !challenge || !credentialId) {
         return res.status(400).json({ error: 'Missing required parameters' })
@@ -157,9 +171,12 @@ router.post(
       const timestamp = TimeHelper.getNigerianTime()
       await AttendanceModel.create({
         employeeId,
-        timestamp,
+        timestamp: TimeHelper.getNigerianTime(),
         type: signType,
         name: storedCredential.user.name,
+        location_type: locationType,
+        latitude,
+        longitude,
       })
 
       res.json({

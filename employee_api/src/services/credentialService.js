@@ -1,4 +1,3 @@
-import Credential from '../models/CredentialModel.js'
 import WebAuthnService from './webauthnService.js'
 
 class CredentialService {

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import db from '../config/database.js'
 
 class User {
   constructor({
@@ -63,6 +64,22 @@ class User {
       errors.push('Invalid email format')
     }
     return errors
+  }
+  static async findByEmployeeId(employee_id) {
+    const query = {
+      text: 'SELECT * FROM employees WHERE employee_id = $1',
+      values: [employee_id],
+    }
+    try {
+      const result = await db.pool.query(query)
+      if (result.rows.length === 0) {
+        return null
+      }
+      return new User(result.rows[0])
+    } catch (error) {
+      console.error('Error querying for employee:', error)
+      throw error
+    }
   }
 }
 

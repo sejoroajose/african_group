@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
-import { Bell, Check, Coffee, Sun, Moon } from 'lucide-react'
+import { Bell, Check, Coffee, Sun, Moon, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
 
-const isAndroid = /Android/i.test(navigator.userAgent)
-const BASE_URL = isAndroid
-  ? 'https://mcyouniverse-employee-android.onrender.com'
-  : 'https://api.mcyouniverse.com'
+const BASE_URL = 'https://api.mcyouniverse.com'
 
 const SIGN_IN_MESSAGES = [
   'Today is a great day to make an impact! Welcome!',
@@ -66,26 +63,29 @@ const AttendanceSystem = () => {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [locationType, setLocationType] = useState('office')
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [showLocationModal, setShowLocationModal] = useState(false)
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner('reader', {
-      qrbox: { width: 250, height: 250 },
-      fps: 5,
-      disableScanFile: true,
-      rememberLastUsedCamera: true,
-      showTorchButtonIfSupported: true,
-      htmlContainer: document.getElementById('reader'),
-      verbose: false,
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-      accessibilityParams: {
-        highlightScanRegion: true,
-        highlightCodeOutline: true,
-      },
-    })
-
-    setTimeout(() => {
-      const style = document.createElement('style')
-      style.textContent = `
+    if (locationType === 'office') {
+      const scanner = new Html5QrcodeScanner('reader', {
+        qrbox: { width: 250, height: 250 },
+        fps: 5,
+        disableScanFile: true,
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true,
+        htmlContainer: document.getElementById('reader'),
+        verbose: false,
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        accessibilityParams: {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        },
+      })
+      setTimeout(() => {
+        const style = document.createElement('style')
+        style.textContent = `
           #reader__scan_region {
             background: transparent !important;
             border-radius: 16px !important;
@@ -147,31 +147,32 @@ const AttendanceSystem = () => {
             display: none !important;
           }
         `
-      document.head.appendChild(style)
-    }, 100)
+        document.head.appendChild(style)
+      }, 100)
 
-    scanner.render(onSuccess, onError)
+      scanner.render(onSuccess, onError)
 
-    function onSuccess(result) {
-      if (result === ATTENDANCE_QR_CODE) {
+      function onSuccess(result) {
+        if (result === ATTENDANCE_QR_CODE) {
+          scanner.clear()
+          setScanResult(result)
+          setShowIdInput(true)
+        }
+      }
+
+      function onError(err) {
+        console.warn(err)
+      }
+
+      return () => {
         scanner.clear()
-        setScanResult(result)
-        setShowIdInput(true)
+        const styleElement = document.querySelector('style')
+        if (styleElement) {
+          styleElement.remove()
+        }
       }
-    }
-
-    function onError(err) {
-      console.warn(err)
-    }
-
-    return () => {
-      scanner.clear()
-      const styleElement = document.querySelector('style')
-      if (styleElement) {
-        styleElement.remove()
-      }
-    }
-  }, [])
+    }  
+  }, [locationType])
 
   useEffect(() => {
     fetchAttendanceRecords(selectedDate)
@@ -241,6 +242,27 @@ const AttendanceSystem = () => {
         }
       }
 
+      let locationData = { locationType }
+      if (locationType !== 'remote') {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0,
+            })
+          })
+
+          locationData = {
+            locationType,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+        } catch (locationError) {
+          setError('Location access denied. Using selected location type.')
+        }
+      }
+
       const response = await fetch(
         `https://api.mcyouniverse.com/api/employees/${upperCaseEmployeeId}`
       )
@@ -249,7 +271,8 @@ const AttendanceSystem = () => {
       const data = await response.json()
       setEmployeeData(data)
       setAttendanceType(type)
-      await handleAttendanceSubmit(data, type)
+
+      await handleAttendanceSubmit(data, type, locationData)
     } catch (error) {
       setError(error.message)
       console.error('Error:', error)
@@ -269,9 +292,7 @@ const AttendanceSystem = () => {
       )
       if (!employeeRes.ok) throw new Error('Employee not found')
 
-      const beginAuthEndpoint = isAndroid
-        ? `${BASE_URL}/api/signinRequest`
-        : `${BASE_URL}/api/employees/biometric/begin-auth`
+      const beginAuthEndpoint = `${BASE_URL}/api/signinRequest`
 
       const beginAuthRes = await fetch(beginAuthEndpoint, {
         method: 'POST',
@@ -351,9 +372,7 @@ const AttendanceSystem = () => {
 
       console.log('Sending assertion response:', assertionResponse)
 
-      const finishAuthEndpoint = isAndroid
-        ? `${BASE_URL}/api/signinResponse`
-        : `${BASE_URL}/api/employees/biometric/finish-auth`
+      const finishAuthEndpoint = `${BASE_URL}/api/signinResponse`
 
       const finishAuthRes = await fetch(finishAuthEndpoint, {
         method: 'POST',
@@ -381,45 +400,60 @@ const AttendanceSystem = () => {
     }
   }
 
-  const fetchAttendanceRecords = async (date) => {
-    try {
-      setError('')
-      setLoading(true)
-      const response = await fetch(
-        `https://api.mcyouniverse.com/api/attendance/daily?date=${date}`
-      )
+   const fetchAttendanceRecords = async (date) => {
+     try {
+       setError('')
+       setLoading(true)
+       const response = await fetch(
+         `https://api.mcyouniverse.com/api/attendance/daily?date=${date}`
+       )
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch attendance records')
-      }
+       if (!response.ok) {
+         throw new Error('Failed to fetch attendance records')
+       }
 
-      const data = await response.json()
+       const data = await response.json()
 
-      if (Array.isArray(data)) {
-        const adjustedRecords = data.map((record) => {
-          const adjustedTime = new Date(record.timestamp)
-          adjustedTime.setHours(adjustedTime.getHours() - 1)
-          return {
-            ...record,
-            timestamp: adjustedTime.toISOString(),
-          }
-        })
+       if (Array.isArray(data)) {
+         const adjustedRecords = data.map((record) => {
+           const adjustedTime = new Date(record.timestamp)
+           adjustedTime.setHours(adjustedTime.getHours() - 1)
+           return {
+             ...record,
+             timestamp: adjustedTime.toISOString(),
+           }
+         })
 
-        setAttendanceRecords(adjustedRecords)
-        if (adjustedRecords.length === 0) {
-          setError('No attendance recorded for today yet.')
-        }
-      } else {
-        setError('No attendance recorded for today yet.')
-      }
-    } catch (error) {
-      setError('Failed to fetch attendance records: ' + error.message)
-      console.error('Error fetching attendance records:', error)
-      setAttendanceRecords([])
-    } finally {
-      setLoading(false)
-    }
-  }
+         const officeRecords = adjustedRecords.filter(
+           (r) => r.location_type === 'office'
+         )
+         const siteRecords = adjustedRecords.filter(
+           (r) => r.location_type === 'site'
+         )
+         const remoteRecords = adjustedRecords.filter(
+           (r) => r.location_type === 'remote'
+         )
+
+         setAttendanceRecords({
+           office: officeRecords,
+           site: siteRecords,
+           remote: remoteRecords,
+         })
+
+         if (adjustedRecords.length === 0) {
+           setError('No attendance recorded for today yet.')
+         }
+       } else {
+         setError('No attendance recorded for today yet.')
+       }
+     } catch (error) {
+       setError('Failed to fetch attendance records: ' + error.message)
+       console.error('Error fetching attendance records:', error)
+       setAttendanceRecords({ office: [], site: [], remote: [] })
+     } finally {
+       setLoading(false)
+     }
+   }
 
   const getTimeStyle = (time, type) => {
     const recordDate = new Date(time)
@@ -471,6 +505,45 @@ const AttendanceSystem = () => {
     )
   }
 
+   const EmployeeLocationModal = ({ employee, onClose }) => {
+     if (!employee) return null
+
+     const googleMapsUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_GOOGLE_MAPS_API_KEY&q=${employee.latitude},${employee.longitude}`
+
+     return (
+       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+         <div className="bg-white rounded-lg p-6 max-w-2xl w-full relative">
+           <button
+             onClick={onClose}
+             className="absolute top-4 right-4 text-gray-600 hover:text-gray-900"
+           >
+             Close
+           </button>
+           <h2 className="text-xl font-bold mb-4 flex items-center">
+             <MapPin className="mr-2 text-red-500" />
+             {employee.name} - Location Details
+           </h2>
+           <div className="w-full h-96">
+             <iframe
+               width="100%"
+               height="100%"
+               frameBorder="0"
+               src={googleMapsUrl}
+               allowFullScreen
+             />
+           </div>
+           <div className="mt-4 text-sm text-gray-600">
+             <p>Location Type: {employee.location_type}</p>
+             <p>Latitude: {employee.latitude}</p>
+             <p>Longitude: {employee.longitude}</p>
+             {employee.address && <p>Address: {employee.address}</p>}
+           </div>
+         </div>
+       </div>
+     )
+   }
+
+
   return (
     <div className="min-h-screen w-full bg-gray-50">
       <div className="w-full max-w-3xl mx-auto p-4 space-y-8">
@@ -492,6 +565,38 @@ const AttendanceSystem = () => {
           </p>
         </header>
 
+        <div className="flex justify-center space-x-4 mb-4">
+          <button
+            onClick={() => setLocationType('site')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              locationType === 'site'
+                ? 'bg-[#263238] text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Site Attendance
+          </button>
+          <button
+            onClick={() => setLocationType('office')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              locationType === 'office'
+                ? 'bg-[#263238] text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Office Attendance
+          </button>
+          <button
+            onClick={() => setLocationType('remote')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              locationType === 'remote'
+                ? 'bg-[#263238] text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Remote Attendance
+          </button>
+        </div>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
             <div className="flex-shrink-0 mt-0.5">
@@ -528,65 +633,85 @@ const AttendanceSystem = () => {
           <div className="border-b border-gray-200 bg-gradient-to-r from-[#263238] to-[#8BC34A] text-white p-5">
             <h2 className="text-xl font-semibold flex items-center">
               <Coffee className="h-5 w-5 mr-2" />
-              Scan Attendance QR Code
+              {locationType === 'office'
+                ? 'Scan Attendance QR Code'
+                : 'Enter Employee Details'}
             </h2>
           </div>
           <div className="p-6">
-            {!showIdInput && <div id="reader" className="w-full max-w-full" />}
-
-            {showIdInput && !success && (
-              <div className="space-y-4">
-                <div className="flex items-center p-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-lg">
-                  {getTimeIcon()}
-                  <span className="font-medium">
-                    {new Date().getHours() < 12
-                      ? 'Good Morning! Please sign in.'
-                      : 'Good Afternoon! Please sign out.'}
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Enter Employee ID"
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full p-3 text-black bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-red-900 transition-all"
-                  disabled={loading}
-                />
-                <button
-                  onClick={handleIdSubmit}
-                  className="w-full bg-gradient-to-r from-red-900 to-red-700 hover:from-red-800 hover:to-red-600 text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none flex items-center justify-center"
-                  disabled={loading || !employeeId}
-                >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    getSubmitButtonText()
-                  )}
-                </button>
-              </div>
+            {locationType === 'office' && !showIdInput && (
+              <div id="reader" className="w-full max-w-full" />
             )}
+
+            {(locationType === 'site' ||
+              locationType === 'remote' ||
+              (locationType === 'office' && showIdInput)) &&
+              !success && (
+                <div className="space-y-4">
+                  <div className="flex items-center p-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-lg">
+                    {getTimeIcon()}
+                    <span className="font-medium">
+                      {new Date().getHours() < 12
+                        ? 'Good Morning! Please sign in.'
+                        : 'Good Afternoon! Please sign out.'}
+                    </span>
+                  </div>
+                  {locationType === 'office' ? (
+                    showIdInput ? (
+                      <input
+                        type="text"
+                        placeholder="Enter Employee ID"
+                        value={employeeId}
+                        onChange={(e) => setEmployeeId(e.target.value)}
+                        className="w-full p-3 text-black bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC34A] focus:border-red-900 transition-all"
+                        disabled={loading}
+                      />
+                    ) : null
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Enter Employee ID"
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
+                      className="w-full p-3 text-black bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC34A] focus:border-red-900 transition-all"
+                      disabled={loading}
+                    />
+                  )}
+                  <button
+                    onClick={handleIdSubmit}
+                    className="w-full bg-gradient-to-r from-[#8BC34A] to-[#263238] hover:from-[#263238] hover:to-[#8BC34A] text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none flex items-center justify-center"
+                    disabled={loading || !employeeId}
+                  >
+                    {loading ? (
+                      <span className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : (
+                      getSubmitButtonText()
+                    )}
+                  </button>
+                </div>
+              )}
           </div>
         </div>
 
@@ -616,82 +741,97 @@ const AttendanceSystem = () => {
                 <p className="mt-3 text-gray-600">Loading records...</p>
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                {attendanceRecords.length > 0 ? (
-                  <div className="inline-block min-w-full align-middle">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Time
-                          </th>
-                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Type
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {attendanceRecords.map((record) => (
-                          <tr
-                            key={record.id}
-                            className="hover:bg-gray-50 transition-colors"
-                          >
-                            <td className="px-1 sm:px-6 py-4 text-sm font-medium text-gray-900 truncate max-w-[100px] sm:max-w-none">
-                              {record.name}
-                            </td>
-                            <td
-                              className={`px-3 sm:px-6 py-4 text-sm ${getTimeStyle(
-                                record.timestamp,
-                                record.type
-                              )}`}
-                            >
-                              {new Date(record.timestamp).toLocaleTimeString(
-                                [],
-                                { hour: '2-digit', minute: '2-digit' }
-                              )}
-                            </td>
-                            <td className="px-3 sm:px-6 py-4">
-                              <span
-                                className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeStyle(
-                                  record.timestamp,
-                                  record.type
-                                )}`}
+              <div className="space-y-6">
+                {['office', 'site', 'remote'].map((locationType) => (
+                  <div
+                    key={locationType}
+                    className="bg-white rounded-lg border"
+                  >
+                    <div className="bg-gray-100 p-3 border-b">
+                      <h3 className="text-lg font-semibold capitalize">
+                        {locationType} Attendance
+                      </h3>
+                    </div>
+                    {attendanceRecords[locationType] &&
+                    attendanceRecords[locationType].length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                              </th>
+                              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Time
+                              </th>
+                              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {attendanceRecords[locationType].map((record) => (
+                              <tr
+                                key={record.id}
+                                className="hover:bg-gray-50 transition-colors"
                               >
-                                {record.type}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                <td className="px-1 sm:px-6 py-4 text-sm font-medium text-gray-900 truncate max-w-[100px] sm:max-w-none">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedEmployee(record)
+                                      setShowLocationModal(true)
+                                    }}
+                                    className="text-blue-600 hover:underline text-left w-full"
+                                  >
+                                    {record.name}
+                                  </button>
+                                </td>
+                                <td
+                                  className={`px-3 sm:px-6 py-4 text-sm ${getTimeStyle(
+                                    record.timestamp,
+                                    record.type
+                                  )}`}
+                                >
+                                  {new Date(
+                                    record.timestamp
+                                  ).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </td>
+                                <td className="px-3 sm:px-6 py-4">
+                                  <span
+                                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeStyle(
+                                      record.timestamp,
+                                      record.type
+                                    )}`}
+                                  >
+                                    {record.type}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        No {locationType} attendance records found
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-12 px-4">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-12 w-12 text-gray-400 mx-auto"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <p className="mt-4 text-gray-500 text-lg">
-                      No attendance records found for this date
-                    </p>
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
+
+          {/* Location Modal */}
+          {showLocationModal && (
+            <EmployeeLocationModal
+              employee={selectedEmployee}
+              onClose={() => setShowLocationModal(false)}
+            />
+          )}
         </div>
       </div>
       <div className="text-center py-6 text-gray-500 text-sm">

@@ -5,26 +5,29 @@ import base64url from 'base64url'
 const WebAuthnService = {
   CONFIG: {
     RP_NAME: 'Employee Authentication System',
-    TIMEOUT: 30 * 60 * 1000, 
-    SUPPORTED_ALGORITHMS: [-7, -257], 
+    TIMEOUT: 30 * 60 * 1000,
+    SUPPORTED_ALGORITHMS: [-7, -257],
   },
 
-  async generateRegistrationOptions(user, existingCredentials = []) {
+  async generateRegistrationOptions(user, existingCredentials = null) {
     try {
       return await fido2.generateRegistrationOptions({
         rpName: this.CONFIG.RP_NAME,
-        rpID: process.env.HOSTNAME,
+        rpID: 'process.env.HOSTNAME',
         userID: isoUint8Array.fromUTF8String(user.employee_id),
         userName: user.employee_id,
         displayName: user.name,
         timeout: this.CONFIG.TIMEOUT,
         attestationType: 'none',
 
-        excludeCredentials: existingCredentials.map((cred) => ({
-          id: this.normalizeCredentialId(cred.credential_id),
-          type: 'public-key',
-          transports: ['internal', 'platform', 'hybrid'],
-        })),
+        excludeCredentials:
+          existingCredentials && existingCredentials.length > 0
+            ? existingCredentials.map((cred) => ({
+                id: this.normalizeCredentialId(cred.credential_id),
+                type: 'public-key',
+                transports: ['internal', 'platform', 'hybrid'],
+              }))
+            : [],
 
         authenticatorSelection: {
           authenticatorAttachment: 'platform',
