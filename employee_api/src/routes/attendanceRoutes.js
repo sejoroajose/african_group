@@ -38,6 +38,33 @@ router.get(
   }
 )
 
+router.get('/daily', async (req, res) => {
+  try {
+    const dateParam = req.query.date
+    const targetDate = dateParam ? new Date(dateParam) : new Date()
+
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' })
+    }
+
+    const startOfDay = new Date(targetDate)
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const dailyRecords = await AttendanceService.getDailyAttendance(
+      startOfDay,
+      endOfDay
+    )
+
+    res.status(200).json(dailyRecords)
+  } catch (error) {
+    console.error('Error retrieving daily attendance:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 router.get(
   '/report',
   async (req, res) => {

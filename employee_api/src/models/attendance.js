@@ -1,13 +1,14 @@
 import { v4 as uuidv4 } from 'uuid'
+import db from '../config/database.js'
 
 class Attendance {
   constructor({
     id = uuidv4(),
     employee_id,
     name,
-    type, 
+    type,
     timestamp = new Date(),
-    location_type, 
+    location_type,
     site_id = null,
     latitude,
     longitude,
@@ -78,7 +79,6 @@ class Attendance {
       errors.push('Invalid location type')
     }
 
-
     if (this.location_type === 'office') {
       if (!this.latitude || !this.longitude) {
         errors.push('Latitude and longitude are required for office attendance')
@@ -108,6 +108,21 @@ class Attendance {
       address: data.address,
       notes: data.notes,
     })
+  }
+
+  static async findByDateRange(startDate, endDate) {
+    try {
+      const query = `
+      SELECT * FROM attendance_records 
+      WHERE timestamp BETWEEN $1 AND $2
+      ORDER BY timestamp
+    `
+      const result = await db.pool.query(query, [startDate, endDate])
+      return result.rows
+    } catch (error) {
+      console.error('Error fetching attendance records:', error)
+      throw error
+    }
   }
 }
 

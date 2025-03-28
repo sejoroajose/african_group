@@ -74,6 +74,23 @@ const AttendanceService = {
     }
   },
 
+  async getDailyAttendance(startOfDay, endOfDay) {
+    try {
+      const records = await AttendanceModel.findByDateRange(
+        startOfDay,
+        endOfDay
+      )
+
+      return records.map((record) => ({
+        ...record,
+        timestamp: TimeHelper.formatTimestamp(record.timestamp),
+      }))
+    } catch (error) {
+      console.error('Failed to retrieve daily attendance:', error)
+      throw error
+    }
+  },
+
   calculateBusinessDays(startDate, endDate) {
     let count = 0
     const currentDate = new Date(startDate)

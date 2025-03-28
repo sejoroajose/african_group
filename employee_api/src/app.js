@@ -12,10 +12,20 @@ const app = express()
 app.use(helmet()) 
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS.split(','),
+    origin: process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
+      : ['http://localhost:5173'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 )
+
+app.use((req, res, next) => {
+  console.log('CORS - Origin:', req.headers.origin)
+  console.log('CORS - Allowed Origins:', process.env.ALLOWED_ORIGINS)
+  next()
+})
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
