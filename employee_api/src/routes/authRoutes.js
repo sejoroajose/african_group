@@ -1,6 +1,6 @@
 import express from 'express'
 import WebAuthnService from '../services/webauthnService.js'
-import UserModel from '../models/user.js'
+import User from '../models/user.js'
 import CredentialModel from '../models/CredentialModel.js'
 import AttendanceModel from '../models/attendance.js'
 import DeviceMiddleware from '../middlewares/deviceCheck.js'
@@ -19,7 +19,7 @@ router.post('/employee', async (req, res) => {
       return res.status(400).send({ error: 'Invalid employee ID format' })
     }
 
-    const user = await UserModel.findByEmployeeId(employee_id)
+    const user = await User.findByEmployeeId(employee_id)
     if (!user) {
       return res.status(404).json({ error: 'Employee not found' })
     }
@@ -28,10 +28,13 @@ router.post('/employee', async (req, res) => {
 
     const userResponse = {
       ...user,
-      credentials: credentials
+      credentials: Array.isArray(credentials)
         ? credentials.map(CredentialHelper.formatCredential)
+        : credentials
+        ? [CredentialHelper.formatCredential(credentials)]
         : [],
     }
+
 
     req.session.employee_id = employee_id
     res.json(userResponse)
@@ -161,7 +164,7 @@ router.post(
 
 router.post(
   '/signinRequest',
-  DeviceMiddleware.validatePlatform,
+  /* DeviceMiddleware.validatePlatform, */
   async (req, res) => {
     try {
       const { employeeId, type } = req.body
