@@ -5,6 +5,7 @@ import CredentialModel from '../models/CredentialModel.js'
 import AttendanceModel from '../models/attendance.js'
 import DeviceMiddleware from '../middlewares/deviceCheck.js'
 import TimeHelper from '../utils/timeHelper.js'
+import * as fido2 from '@simplewebauthn/server'
 import CredentialHelper from '../utils/credentialHelper.js'
 
 const router = express.Router()
