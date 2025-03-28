@@ -82,66 +82,52 @@ const WebAuthnService = {
 
   async verifyRegistration(credential, challenge) {
     try {
+      // Validate that credential is a non-null object
       if (!credential || typeof credential !== 'object') {
-        throw new Error('Invalid credential object')
+        throw new Error('Invalid credential object');
       }
 
-      const credentialId = credential.id || credential.rawId
-      if (!credentialId) {
-        throw new Error('Credential ID is missing')
-      }
-
-      const verificationOptions = {
-        response: {
-          attestationObject: base64url.toBuffer(
-            credential.response.attestationObject
-          ),
-          clientDataJSON: base64url.toBuffer(
-            credential.response.clientDataJSON
-          ),
-        },
+      // Pass the full credential object to the library
+      const verification = await fido2.verifyRegistrationResponse({
+        credential: credential,
         expectedChallenge: challenge,
         expectedOrigin: this.CONFIG.ORIGIN,
         expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
-        credential: {
-          id: base64url.toBuffer(credentialId),
-        },
-      }
+      });
 
-      const verification = await fido2.verifyRegistrationResponse(
-        verificationOptions
-      )
-
+      // Check if verification succeeded
       if (!verification.verified) {
-        throw new Error('Registration verification failed')
+        throw new Error('Registration verification failed');
       }
 
-      const registrationInfo = verification.registrationInfo
+      // Extract registration info
+      const registrationInfo = verification.registrationInfo;
       if (!registrationInfo) {
-        throw new Error('No registration information found')
+        throw new Error('No registration information found');
       }
 
-      const publicKey = registrationInfo.credentialPublicKey
+      const publicKey = registrationInfo.credentialPublicKey;
       if (!publicKey) {
-        throw new Error('Credential public key is missing')
+        throw new Error('Credential public key is missing');
       }
 
+      // Return the normalized credential data
       return {
         credential: {
-          id: base64url.encode(verificationOptions.credential.id),
+          id: base64url.encode(registrationInfo.credentialID),
           publicKey: base64url.encode(publicKey),
         },
         counter: registrationInfo.counter,
         aaguid: registrationInfo.aaguid,
-      }
+      };
     } catch (error) {
       console.error('Detailed registration verification error:', {
         message: error.message,
         stack: error.stack,
         credential: JSON.stringify(credential),
-      })
-      throw error
+      });
+      throw error;
     }
   },
 
