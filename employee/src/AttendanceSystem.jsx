@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
 
-const BASE_URL = 'https://api.mcyouniverse.com'
+const BASE_URL = 'http://localhost:3000'
 
 const SIGN_IN_MESSAGES = [
   'Today is a great day to make an impact! Welcome!',
@@ -180,9 +180,7 @@ const AttendanceSystem = () => {
 
   const canSignOut = async (employeeId) => {
     const today = new Date().toISOString().split('T')[0]
-    const response = await fetch(
-      `https://api.mcyouniverse.com/api/attendance/daily?date=${today}`
-    )
+    const response = await fetch(`${BASE_URL}/attendance/daily?date=${today}`)
     if (!response.ok) return false
 
     const records = await response.json()
@@ -264,7 +262,7 @@ const AttendanceSystem = () => {
       }
 
       const response = await fetch(
-        `https://api.mcyouniverse.com/api/employees/${upperCaseEmployeeId}`
+        `${BASE_URL}/auth/employee/${upperCaseEmployeeId}`
       )
       if (!response.ok) throw new Error('Employee not found')
 
@@ -288,11 +286,11 @@ const AttendanceSystem = () => {
     try {
       const upperCaseEmployeeId = employeeId.toUpperCase()
       const employeeRes = await fetch(
-        `https://api.mcyouniverse.com/api/employees/${upperCaseEmployeeId}`
+        `${BASE_URL}/auth/employee/${upperCaseEmployeeId}`
       )
       if (!employeeRes.ok) throw new Error('Employee not found')
 
-      const beginAuthEndpoint = `${BASE_URL}/api/signinRequest`
+      const beginAuthEndpoint = `${BASE_URL}/auth/signinRequest`
 
       const beginAuthRes = await fetch(beginAuthEndpoint, {
         method: 'POST',
@@ -372,7 +370,7 @@ const AttendanceSystem = () => {
 
       console.log('Sending assertion response:', assertionResponse)
 
-      const finishAuthEndpoint = `${BASE_URL}/api/signinResponse`
+      const finishAuthEndpoint = `${BASE_URL}/auth/signinResponse`
 
       const finishAuthRes = await fetch(finishAuthEndpoint, {
         method: 'POST',
@@ -405,7 +403,14 @@ const AttendanceSystem = () => {
        setError('')
        setLoading(true)
        const response = await fetch(
-         `https://api.mcyouniverse.com/api/attendance/daily?date=${date}`
+         `${BASE_URL}/attendance/daily?date=${date}`,
+         {
+           credentials: 'include', 
+           method: 'GET',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+         }
        )
 
        if (!response.ok) {
@@ -574,7 +579,7 @@ const AttendanceSystem = () => {
                 : 'bg-gray-200 text-gray-700'
             }`}
           >
-            Site Attendance
+            Site
           </button>
           <button
             onClick={() => setLocationType('office')}
@@ -584,7 +589,7 @@ const AttendanceSystem = () => {
                 : 'bg-gray-200 text-gray-700'
             }`}
           >
-            Office Attendance
+            Office
           </button>
           <button
             onClick={() => setLocationType('remote')}
@@ -594,7 +599,7 @@ const AttendanceSystem = () => {
                 : 'bg-gray-200 text-gray-700'
             }`}
           >
-            Remote Attendance
+            Remote
           </button>
         </div>
         {error && (
