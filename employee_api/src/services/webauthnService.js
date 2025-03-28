@@ -7,10 +7,8 @@ const WebAuthnService = {
     RP_NAME: 'African Group NG Employee Attendance System',
     TIMEOUT: 30 * 60 * 1000,
     SUPPORTED_ALGORITHMS: [-7, -257],
-    RP_ID: process.env.VERCEL_URL || 'african-group-tau.vercel.app',
-    ORIGIN:
-      process.env.ORIGIN ||
-      `https://${process.env.VERCEL_URL || 'african-group-tau.vercel.app'}`,
+    RP_ID: 'african-group-tau.vercel.app',
+    ORIGIN: 'african-group-tau.vercel.app',
   },
 
   async generateRegistrationOptions(user, existingCredentials = null) {
