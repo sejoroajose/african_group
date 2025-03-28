@@ -79,6 +79,7 @@ router.post(
     try {
       const { employeeId, challenge, ...credentialData } = req.body
 
+      // Comprehensive validation
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID is required' })
       }
@@ -91,16 +92,23 @@ router.post(
         return res.status(400).json({ error: 'Credential data is missing' })
       }
 
-      console.log(
-        'Incoming credential data:',
-        JSON.stringify(credentialData, null, 2)
-      )
+      // Detailed logging
+      console.log('Registration Request Details:', {
+        employeeId,
+        challengeLength: challenge.length,
+        credentialDataKeys: Object.keys(credentialData),
+        credentialId: credentialData.id || credentialData.rawId,
+        responseKeys: credentialData.response
+          ? Object.keys(credentialData.response)
+          : 'No response object',
+      })
 
       const registrationInfo = await WebAuthnService.verifyRegistration(
         credentialData,
         challenge
       )
 
+      // Additional validation of registration info
       if (!registrationInfo.credential.id) {
         throw new Error('Credential ID could not be normalized')
       }
@@ -109,7 +117,7 @@ router.post(
         throw new Error('Public key is required')
       }
 
-      await CredentialModel.create({
+      const createdCredential = await CredentialModel.create({
         employeeId,
         credentialId: registrationInfo.credential.id,
         publicKey: registrationInfo.credential.publicKey,
@@ -117,10 +125,24 @@ router.post(
         aaguid: registrationInfo.aaguid,
       })
 
+      // Log successful credential creation
+      console.log('Credential Successfully Created', {
+        employeeId,
+        credentialId: createdCredential.credentialId,
+      })
+
       res.json({ success: true })
     } catch (error) {
-      console.error('Full registration response error:', error)
+      // Extensive error logging
+      console.error('Full registration response error:', {
+        message: error.message,
+        stack: error.stack,
+        employeeId,
+        challenge: challenge ? 'Present' : 'Missing',
+        credentialData: JSON.stringify(credentialData),
+      })
 
+      // Provide more detailed error response
       res.status(400).json({
         error: error.message,
         details: error.toString(),

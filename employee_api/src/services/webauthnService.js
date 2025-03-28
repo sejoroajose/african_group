@@ -82,15 +82,22 @@ const WebAuthnService = {
 
   async verifyRegistration(credential, challenge) {
     try {
+      // Validate input
       if (!credential || typeof credential !== 'object') {
         throw new Error('Invalid credential object')
       }
 
+      // Verify the registration response
       const verification = await fido2.verifyRegistrationResponse({
-        response: credential,
+        response: {
+          attestationObject: base64url.decode(
+            credential.response.attestationObject
+          ),
+          clientDataJSON: base64url.decode(credential.response.clientDataJSON),
+        },
         expectedChallenge: challenge,
-        expectedOrigin: this.CONFIG.ORIGIN, 
-        expectedRPID: this.CONFIG.RP_ID, 
+        expectedOrigin: this.CONFIG.ORIGIN,
+        expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
       })
 
@@ -98,24 +105,32 @@ const WebAuthnService = {
         throw new Error('Registration verification failed')
       }
 
+      // Ensure registration info exists
       const registrationInfo = verification.registrationInfo
       if (!registrationInfo) {
         throw new Error('No registration information found')
       }
 
-      const credentialId = credential.id || credential.rawId
+      // Extract and encode the public key
       const publicKey = registrationInfo.credentialPublicKey
+      if (!publicKey) {
+        throw new Error('Credential public key is missing')
+      }
 
       return {
         credential: {
-          id: this.normalizeCredentialId(credentialId),
-          publicKey: publicKey ? base64url.encode(publicKey) : undefined,
+          id: this.normalizeCredentialId(credential.id || credential.rawId),
+          publicKey: base64url.encode(publicKey),
         },
         counter: registrationInfo.counter,
-        aaguid: registrationInfo.aaguid
+        aaguid: registrationInfo.aaguid,
       }
     } catch (error) {
-      console.error('Registration verification error:', error)
+      console.error('Detailed registration verification error:', {
+        message: error.message,
+        stack: error.stack,
+        credential: JSON.stringify(credential),
+      })
       throw error
     }
   },
