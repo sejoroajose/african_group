@@ -17,9 +17,7 @@ app.use((req, res, next) => {
 })
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-      : ['http://localhost:5173'],
+    origin: 'https://african-group-tau.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

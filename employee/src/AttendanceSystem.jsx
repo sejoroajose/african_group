@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
 
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = 'https://african-group.onrender.com'
 
 const SIGN_IN_MESSAGES = [
   'Today is a great day to make an impact! Welcome!',

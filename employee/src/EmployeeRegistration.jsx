@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { UserCircle, Fingerprint, AlertCircle, CheckCircle } from 'lucide-react'
 
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = 'https://african-group.onrender.com'
 
 const EmployeeRegistration = () => {
   const [employeeId, setEmployeeId] = useState('')
