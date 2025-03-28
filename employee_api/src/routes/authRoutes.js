@@ -12,7 +12,7 @@ router.post('/employee', async (req, res) => {
   try {
     const { employee_id } = req.body
 
-    if (!employee_id || !/^AG-\d{3}$/.test(employee_id)) {
+    if (!employee_id || !/^AFG-[A-Z]\d{3,4}$/.test(employee_id)) {
       return res.status(400).send({ error: 'Invalid employee ID format' })
     }
 

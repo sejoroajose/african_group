@@ -53,7 +53,7 @@ class User {
 
   validate() {
     const errors = []
-    if (!this.employee_id || !/^AG-\d{3}$/.test(this.employee_id)) {
+    if (!this.employee_id || !/^AFG-[A-Z]\d{3,4}$/.test(this.employee_id)) {
       errors.push('Invalid employee ID format')
     }
     if (!this.name) {

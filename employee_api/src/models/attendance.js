@@ -78,6 +78,13 @@ class Attendance {
       errors.push('Invalid location type')
     }
 
+
+    if (this.location_type === 'office') {
+      if (!this.latitude || !this.longitude) {
+        errors.push('Latitude and longitude are required for office attendance')
+      }
+    }
+
     if (['site', 'office'].includes(this.location_type)) {
       if (!this.latitude || !this.longitude) {
         errors.push(
@@ -94,7 +101,7 @@ class Attendance {
       employee_id: data.employee_id,
       name: data.name,
       type: data.type,
-      location_type: data.location_type || 'office',
+      location_type: data.location_type,
       site_id: data.site_id,
       latitude: data.latitude,
       longitude: data.longitude,
