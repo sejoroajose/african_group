@@ -90,14 +90,15 @@ router.post(
         return res.status(400).json({ error: 'Credential data is missing' })
       }
 
-      console.log('Registration Request Details:', {
+      console.log('Detailed Registration Request', {
         employeeId,
-        challengeLength: challenge.length,
+        challengeLength: challenge ? challenge.length : 'NO CHALLENGE',
         credentialDataKeys: Object.keys(credentialData),
         credentialId: credentialData.id || credentialData.rawId,
-        responseKeys: credentialData.response
-          ? Object.keys(credentialData.response)
-          : 'No response object',
+        responseType: credentialData.type,
+        attestationObjectLength:
+          credentialData.response?.attestationObject?.length,
+        clientDataJSONLength: credentialData.response?.clientDataJSON?.length,
       })
 
       const registrationInfo = await WebAuthnService.verifyRegistration(
@@ -134,7 +135,7 @@ router.post(
 
       console.log('Credential Successfully Created', {
         employeeId,
-        credentialId: createdCredential.credential_id,
+        credentialId: registrationInfo.credential.id,
       })
 
       res.json({ success: true })
@@ -150,7 +151,6 @@ router.post(
       res.status(400).json({
         error: error.message,
         details: error.toString(),
-        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
       })
     }
   }

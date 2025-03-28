@@ -79,13 +79,15 @@ const WebAuthnService = {
       throw error
     }
   },
+
   async verifyRegistration(credential, challenge) {
     try {
       if (!credential || typeof credential !== 'object') {
         throw new Error('Invalid credential object')
       }
 
-      if (!credential.id && !credential.rawId) {
+      const credentialId = credential.id || credential.rawId
+      if (!credentialId) {
         throw new Error('Credential ID is missing')
       }
 
@@ -102,12 +104,9 @@ const WebAuthnService = {
         expectedOrigin: this.CONFIG.ORIGIN,
         expectedRPID: this.CONFIG.RP_ID,
         requireUserVerification: true,
-      }
-
-      if (credential.id || credential.rawId) {
-        verificationOptions.credential = {
-          id: base64url.toBuffer(credential.id || credential.rawId),
-        }
+        credential: {
+          id: base64url.toBuffer(credentialId),
+        },
       }
 
       const verification = await fido2.verifyRegistrationResponse(
@@ -145,6 +144,7 @@ const WebAuthnService = {
       throw error
     }
   },
+
   async generateAuthenticationOptions() {
     try {
       return await fido2.generateAuthenticationOptions({
