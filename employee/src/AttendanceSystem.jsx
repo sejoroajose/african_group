@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { Bell, Check, Coffee, Sun, Moon, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const ATTENDANCE_QR_CODE =
   'At African Group, we are committed to delivering exceptional surveying, mapping, real estate, construction, and agro solutions across Africa and beyond.'
@@ -529,9 +531,27 @@ const AttendanceSystem = () => {
   }
 
    const EmployeeLocationModal = ({ employee, onClose }) => {
-     if (!employee) return null
+     useEffect(() => {
+       if (employee && employee.latitude && employee.longitude) {
+         const map = L.map('map-container').setView(
+           [employee.latitude, employee.longitude],
+           13
+         )
 
-     const googleMapsUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_GOOGLE_MAPS_API_KEY&q=${employee.latitude},${employee.longitude}`
+         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+           attribution: '© OpenStreetMap contributors',
+         }).addTo(map)
+
+         L.marker([employee.latitude, employee.longitude])
+           .addTo(map)
+           .bindPopup(employee.name)
+           .openPopup()
+
+         return () => map.remove()
+       }
+     }, [employee])
+
+     if (!employee) return null
 
      return (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -544,16 +564,11 @@ const AttendanceSystem = () => {
            </button>
            <h2 className="text-xl font-bold mb-4 flex items-center">
              <MapPin className="mr-2 text-red-500" />
-             {employee.name} - Location Details
+             This attendance was registered by {employee.name} - Location
+             Details
            </h2>
            <div className="w-full h-96">
-             <iframe
-               width="100%"
-               height="100%"
-               frameBorder="0"
-               src={googleMapsUrl}
-               allowFullScreen
-             />
+             <div id="map-container" className="w-full h-full" />
            </div>
            <div className="mt-4 text-sm text-gray-600">
              <p>Location Type: {employee.location_type}</p>
