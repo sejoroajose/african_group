@@ -186,15 +186,21 @@ const AttendanceSystem = () => {
   const canSignOut = async (employeeId) => {
     const today = new Date().toISOString().split('T')[0]
     const response = await fetch(`${BASE_URL}/attendance/daily?date=${today}`)
+
     if (!response.ok) return false
 
     const records = await response.json()
-    return records.some(
-      (record) =>
-        record.employee_id.toUpperCase() === employeeId.toUpperCase() &&
-        record.type === 'sign-in' &&
-        new Date(record.timestamp).toISOString().split('T')[0] === today
-    )
+
+    const sortedRecords = records
+      .filter(
+        (record) =>
+          record.employee_id.toUpperCase() === employeeId.toUpperCase()
+      )
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+
+    const lastRecord = sortedRecords[sortedRecords.length - 1]
+
+    return lastRecord && lastRecord.type === 'sign-in'
   }
 
   const base64UrlToBase64 = (base64Url) => {
@@ -227,6 +233,35 @@ const AttendanceSystem = () => {
     return btoa(String.fromCharCode(...bytes))
   }
 
+  const determineAttendanceType = async (employeeId, locationType) => {
+    const today = new Date().toISOString().split('T')[0]
+
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/daily?date=${today}`)
+
+      if (!response.ok) return 'sign-in'
+
+      const records = await response.json()
+
+      const locationRecords = records.filter(
+        (record) =>
+          record.employee_id.toUpperCase() === employeeId.toUpperCase() &&
+          record.location_type === locationType
+      )
+
+      if (locationRecords.length === 0) return 'sign-in'
+
+      const sortedRecords = locationRecords.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      )
+
+      return sortedRecords[0].type === 'sign-in' ? 'sign-out' : 'sign-in'
+    } catch (error) {
+      console.error('Error determining attendance type:', error)
+      return 'sign-in'
+    }
+  }
+
   const handleIdSubmit = async () => {
     try {
       setError('')
@@ -234,16 +269,11 @@ const AttendanceSystem = () => {
       setSuccess(false)
 
       const upperCaseEmployeeId = employeeId.toUpperCase()
-      const now = new Date()
-      const hours = now.getHours()
-      const type = hours < 12 ? 'sign-in' : 'sign-out'
 
-      if (type === 'sign-out') {
-        const hasSignedIn = await canSignOut(upperCaseEmployeeId)
-        if (!hasSignedIn) {
-          throw new Error('Cannot sign out without signing in first')
-        }
-      }
+      const type = await determineAttendanceType(
+        upperCaseEmployeeId,
+        locationType
+      )
 
       let locationData = { locationType }
       if (locationType !== 'remote') {
