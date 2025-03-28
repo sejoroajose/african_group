@@ -406,7 +406,27 @@ const AttendanceSystem = () => {
   
     
     const parseTimestamp = (timestamp) => {
-      return new Date(timestamp)
+      try {
+        const date = new Date(timestamp)
+
+        if (!isNaN(date.getTime())) {
+          return date
+        }
+
+        if (typeof timestamp === 'string') {
+          const parsedDate = new Date(Date.parse(timestamp))
+
+          if (!isNaN(parsedDate.getTime())) {
+            return parsedDate
+          }
+        }
+
+        console.warn('Invalid timestamp:', timestamp)
+        return new Date()
+      } catch (error) {
+        console.error('Error parsing timestamp:', error)
+        return new Date()
+      }
     }
 
    const fetchAttendanceRecords = async (date) => {
@@ -445,11 +465,18 @@ const AttendanceSystem = () => {
 
        if (Array.isArray(data)) {
          const adjustedRecords = data.map((record) => {
-           const adjustedTime = parseTimestamp(record.timestamp)
-
-           return {
-             ...record,
-             timestamp: adjustedTime.toISOString(),
+           try {
+             const adjustedTime = parseTimestamp(record.timestamp)
+             return {
+               ...record,
+               timestamp: adjustedTime.toISOString(),
+             }
+           } catch (parseError) {
+             console.error('Error parsing record timestamp:', parseError)
+             return {
+               ...record,
+               timestamp: new Date().toISOString(), // Fallback to current time
+             }
            }
          })
 
