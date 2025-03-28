@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { Bell, Check, Coffee, Sun, Moon, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
@@ -403,6 +403,22 @@ const AttendanceSystem = () => {
     }
   }
 
+  
+    const parseTimestamp = (timestamp) => {
+      if (!timestamp) {
+        return new Date()
+      }
+
+      const parsedDate = new Date(timestamp)
+
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate
+      }
+
+      console.warn('Invalid timestamp:', timestamp)
+      return new Date()
+    }
+
    const fetchAttendanceRecords = async (date) => {
      try {
        setError('')
@@ -439,25 +455,7 @@ const AttendanceSystem = () => {
 
        if (Array.isArray(data)) {
          const adjustedRecords = data.map((record) => {
-           // Safely parse the timestamp
-           let adjustedTime
-           try {
-             // Use a more robust timestamp parsing
-             adjustedTime = record.timestamp
-               ? new Date(record.timestamp)
-               : new Date()
-
-             // Only adjust if the date is valid
-             if (!isNaN(adjustedTime.getTime())) {
-               adjustedTime.setHours(adjustedTime.getHours() - 1)
-             } else {
-               console.warn('Invalid timestamp:', record.timestamp)
-               adjustedTime = new Date()
-             }
-           } catch (parseError) {
-             console.error('Error parsing timestamp:', parseError)
-             adjustedTime = new Date()
-           }
+           const adjustedTime = parseTimestamp(record.timestamp)
 
            return {
              ...record,

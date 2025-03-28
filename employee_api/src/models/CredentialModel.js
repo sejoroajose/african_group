@@ -81,20 +81,38 @@ class CredentialModel {
     }
   }
   static async findByEmployeeId(employee_id) {
-      const query = {
-        text: 'SELECT * FROM webauthn_credentials WHERE employee_id = $1',
-        values: [employee_id],
+    const query = {
+      text: 'SELECT * FROM webauthn_credentials WHERE employee_id = $1',
+      values: [employee_id],
+    }
+    try {
+      const result = await db.pool.query(query)
+      if (result.rows.length === 0) {
+        return null
       }
-      try {
-        const result = await db.pool.query(query)
-        if (result.rows.length === 0) {
-          return null
-        }
-        return new User(result.rows[0])
-      } catch (error) {
-        console.error('Error querying for employee:', error)
-        throw error
-      }
+      return new CredentialModel(result.rows[0]) 
+    } catch (error) {
+      console.error('Error querying for employee:', error)
+      throw error
+    }
+  }
+  static async create(credentialData) {
+    const credentialModel = new CredentialModel(credentialData)
+    const validationErrors = credentialModel.validate()
+
+    if (validationErrors.length > 0) {
+      throw new Error(`Validation failed: ${validationErrors.join(', ')}`)
+    }
+
+    const insertQuery = credentialModel.toInsertQuery()
+
+    try {
+      await db.pool.query(insertQuery)
+      return credentialModel
+    } catch (error) {
+      console.error('Error creating credential:', error)
+      throw error
+    }
   }
 }
 
