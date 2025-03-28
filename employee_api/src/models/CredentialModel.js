@@ -18,10 +18,21 @@ class CredentialModel {
     this.credential_id = credential_id
     this.public_key = public_key
     this.sign_count = sign_count
-    this.aaguid = aaguid
+    this.aaguid = this.sanitizeAaguid(aaguid)
     this.platform = platform
     this.created_at = created_at
     this.last_used_at = last_used_at
+  }
+
+  sanitizeAaguid(aaguid) {
+    if (
+      !aaguid ||
+      aaguid === '00000000-0000-0000-0000-000000000000' ||
+      aaguid === 'MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAw'
+    ) {
+      return null
+    }
+    return aaguid
   }
 
   toInsertQuery() {
@@ -90,7 +101,7 @@ class CredentialModel {
       if (result.rows.length === 0) {
         return null
       }
-      return new CredentialModel(result.rows[0]) 
+      return new CredentialModel(result.rows[0])
     } catch (error) {
       console.error('Error querying for employee:', error)
       throw error
