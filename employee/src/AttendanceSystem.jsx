@@ -574,7 +574,13 @@ const AttendanceSystem = () => {
     }
   }
 
-  const getSubmitButtonText = async (employeeId, locationType) => {
+  const getSubmitButtonText = () => {
+    const now = new Date()
+    const hours = now.getHours()
+    return hours < 12 ? 'Sign-In' : 'Sign-Out'
+  }
+
+  const getAttendanceButtonText = async (employeeId, locationType) => {
     try {
       const type = await determineAttendanceType(employeeId, locationType)
       return type === 'sign-in' ? 'Sign-In' : 'Sign-Out'
