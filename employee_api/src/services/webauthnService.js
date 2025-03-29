@@ -169,29 +169,42 @@ const WebAuthnService = {
     }
   },
 
-  async verifyAuthentication(credential, storedCredential, challenge) {
+  async verifyAuthentication(authResponse, storedCredential, expectedChallenge) {
     try {
+      const publicKey = base64url.toBuffer(storedCredential.public_key);
+      
+      const authenticator = {
+        credentialID: base64url.toBuffer(storedCredential.credential_id),
+        credentialPublicKey: publicKey, 
+        counter: storedCredential.sign_count || 0,
+      };
+
       const verification = await fido2.verifyAuthenticationResponse({
-        response: credential,
-        expectedChallenge: challenge,
+        response: authResponse,
+        expectedChallenge: expectedChallenge,
         expectedOrigin: new URL(process.env.ORIGIN).origin,
         expectedRPID: new URL(process.env.ORIGIN).hostname,
-        credential: {
-          id: this.normalizeCredentialId(storedCredential.credential_id),
-          publicKey: storedCredential.public_key,
-          counter: storedCredential.sign_count || 0,
-        },
+        authenticator: authenticator,
         requireUserVerification: true,
-      })
+      });
 
       if (!verification.verified) {
-        throw new Error('Authentication verification failed')
+        throw new Error('Authentication verification failed');
       }
 
-      return verification
+      if (verification.authenticationInfo.newCounter > storedCredential.sign_count) {
+        await CredentialModel.updateSignCount(
+          storedCredential.credential_id,
+          verification.authenticationInfo.newCounter
+        );
+      }
+
+      await CredentialModel.updateLastUsed(storedCredential.credential_id);
+
+      return verification;
     } catch (error) {
-      console.error('Authentication verification error:', error)
-      throw error
+      console.error('Authentication verification error:', error);
+      throw error;
     }
   },
 
