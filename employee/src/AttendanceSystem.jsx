@@ -452,19 +452,14 @@ const AttendanceSystem = () => {
   
     const parseTimestamp = (timestamp) => {
       try {
-        // Create date object without timezone conversion
-        if (typeof timestamp === 'string') {
-          // Parse the timestamp and explicitly keep the UTC time
-          const [datePart, timePart] = timestamp.split('T')
-          const [year, month, day] = datePart.split('-').map(Number)
-          const [hours, minutes, seconds] = timePart.split(/[.:Z]/).map(Number)
+        const date = new Date(timestamp)
 
-          // JavaScript months are 0-indexed
-          const date = new Date(year, month - 1, day, hours, minutes, seconds)
+        if (!isNaN(date.getTime())) {
+          date.setHours(date.getHours() - 1)
           return date
         }
 
-        console.warn('Invalid timestamp format:', timestamp)
+        console.warn('Invalid timestamp:', timestamp)
         return new Date()
       } catch (error) {
         console.error('Error parsing timestamp:', error)
@@ -518,7 +513,7 @@ const AttendanceSystem = () => {
              console.error('Error parsing record timestamp:', parseError)
              return {
                ...record,
-               timestamp: new Date().toISOString(), // Fallback to current time
+               timestamp: new Date().toISOString(), 
              }
            }
          })
@@ -572,6 +567,7 @@ const AttendanceSystem = () => {
       return 'text-gray-600 font-medium'
     }
   }
+
   const getTypeStyle = (time, type) => {
     if (type === 'sign-in') {
       const recordDate = new Date(time)
