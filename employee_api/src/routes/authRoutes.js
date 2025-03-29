@@ -8,6 +8,7 @@ import TimeHelper from '../utils/timeHelper.js'
 import * as fido2 from '@simplewebauthn/server'
 import CredentialHelper from '../utils/credentialHelper.js'
 import base64url from 'base64url'
+import { stringify as uuidStringify } from 'uuid'
 
 const router = express.Router()
 
@@ -128,7 +129,7 @@ router.post(
         credential_id: base64url.encode(credentialID),
         public_key: base64url.encode(credentialPublicKey),
         sign_count: registrationInfo.counter || 0,
-        aaguid: aaguid ? base64url.encode(aaguid) : null,
+        aaguid: aaguid ? uuidStringify(aaguid) : null,
         platform: credential.authenticatorAttachment || null,
         created_at: new Date(),
         last_used_at: null,
