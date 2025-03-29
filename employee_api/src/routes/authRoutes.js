@@ -129,7 +129,7 @@ router.post(
         credential_id: base64url.encode(credentialID),
         public_key: base64url.encode(credentialPublicKey),
         sign_count: registrationInfo.counter || 0,
-        aaguid: aaguid ? uuidStringify(aaguid) : null,
+        aaguid: aaguid ? aaguid : null,
         platform: credential.authenticatorAttachment || null,
         created_at: new Date(),
         last_used_at: null,
