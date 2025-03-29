@@ -223,12 +223,32 @@ router.post(
       }
 
       const storedCredential = employeeCredentials.find((cred) => {
-        const normalizedStoredCredId = WebAuthnService.normalizeCredentialId(
-          cred.credential_id
+        if (cred.credential_id === credentialId) return true
+
+        try {
+          const decodedStored = Buffer.from(
+            cred.credential_id,
+            'base64'
+          ).toString()
+          if (decodedStored === credentialId) return true
+        } catch (e) {
+          // Ignore decoding errors
+        }
+
+        try {
+          const encodedRequest = Buffer.from(credentialId).toString('base64')
+          if (encodedRequest === cred.credential_id) return true
+        } catch (e) {
+          // Ignore encoding errors
+        }
+
+        const normalizedStored = base64url.encode(
+          base64url.decode(cred.credential_id)
         )
-        const normalizedRequestCredId =
-          WebAuthnService.normalizeCredentialId(credentialId)
-        return normalizedStoredCredId === normalizedRequestCredId
+        const normalizedRequest = base64url.encode(
+          base64url.decode(credentialId)
+        )
+        return normalizedStored === normalizedRequest
       })
 
       console.log('Request credential ID:', credentialId)

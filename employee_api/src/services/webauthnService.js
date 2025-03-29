@@ -201,40 +201,26 @@ const WebAuthnService = {
         throw new Error('Credential ID is undefined or null')
       }
 
-      // Handle string format
+      // First, if the input is already base64 encoded, decode it
+      let rawBytes
       if (typeof credentialId === 'string') {
-        // Try to decode and re-encode to ensure consistent base64url format
         try {
-          return base64url.encode(base64url.decode(credentialId))
+          // Try to decode as base64url
+          rawBytes = base64url.decode(credentialId)
         } catch (e) {
-          // If it fails, it might be plain text or another format
-          return base64url.encode(Buffer.from(credentialId, 'utf8'))
+          // If decoding fails, treat the string as raw bytes
+          rawBytes = credentialId
         }
+      } else if (Buffer.isBuffer(credentialId)) {
+        // Already a buffer
+        rawBytes = credentialId.toString()
+      } else {
+        // Other types - convert to buffer first
+        rawBytes = Buffer.from(credentialId).toString()
       }
 
-      // Handle Buffer
-      if (Buffer.isBuffer(credentialId)) {
-        return base64url.encode(credentialId)
-      }
-
-      // Handle ArrayBuffer
-      if (credentialId instanceof ArrayBuffer) {
-        return base64url.encode(Buffer.from(credentialId))
-      }
-
-      // Handle Buffer-like objects
-      if (credentialId.type === 'Buffer' && Array.isArray(credentialId.data)) {
-        return base64url.encode(Buffer.from(credentialId.data))
-      }
-
-      // Handle typed arrays and array-like objects
-      if (Array.isArray(credentialId) || ArrayBuffer.isView(credentialId)) {
-        return base64url.encode(Buffer.from(credentialId))
-      }
-
-      throw new Error(
-        'Unable to normalize credential ID of type: ' + typeof credentialId
-      )
+      // Now encode the raw bytes as base64url
+      return base64url.encode(rawBytes)
     } catch (error) {
       console.error(
         'Credential ID normalization error:',
