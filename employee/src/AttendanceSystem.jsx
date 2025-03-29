@@ -550,24 +550,45 @@ const AttendanceSystem = () => {
      }
    }
 
+
+   const getRowStyle = (time, type) => {
+     const recordDate = new Date(time)
+     const hours = recordDate.getUTCHours()
+     const minutes = recordDate.getUTCMinutes()
+     const totalMinutes = hours * 60 + minutes
+
+     if (type === 'sign-in') {
+       if (totalMinutes <= 9 * 60 + 1) {
+         return 'bg-green-50' 
+       } else if (totalMinutes <= 11 * 60 + 59) {
+         return 'bg-amber-50'
+       }
+     } else if (type === 'sign-out') {
+       return 'bg-blue-50' 
+     }
+
+     return '' 
+   }
+
   const getTimeStyle = (time, type) => {
     const recordDate = new Date(time)
-    // Use UTC methods to avoid timezone conversion
     const hours = recordDate.getUTCHours()
     const minutes = recordDate.getUTCMinutes()
     const totalMinutes = hours * 60 + minutes
 
     if (type === 'sign-in') {
       if (totalMinutes <= 9 * 60 + 1) {
-        return 'text-green-600 font-medium'
+        return 'text-green-700 font-medium' 
       } else if (totalMinutes <= 11 * 60 + 59) {
-        return 'text-amber-500 font-medium'
+        return 'text-amber-600 font-medium' 
       }
+      return 'text-gray-700 font-medium' 
     } else if (type === 'sign-out') {
-      return 'text-gray-600 font-medium'
+      return 'text-blue-700 font-medium' 
     }
-  }
 
+    return 'text-gray-700 font-medium' 
+  }
   const getTypeStyle = (time, type) => {
     if (type === 'sign-in') {
       const recordDate = new Date(time)
@@ -640,7 +661,7 @@ const AttendanceSystem = () => {
            >
              Close
            </button>
-           <h2 className="text-xl font-bold mb-4 flex items-center">
+           <h2 className="text-md  mb-4 flex items-center">
              <MapPin className="mr-2 text-red-500" />
              This attendance was registered by {employee.name} - Location
              Details
@@ -892,7 +913,10 @@ const AttendanceSystem = () => {
                             {attendanceRecords[locationType].map((record) => (
                               <tr
                                 key={record.id}
-                                className="hover:bg-gray-50 transition-colors"
+                                className={`hover:bg-gray-100 transition-colors ${getRowStyle(
+                                  record.timestamp,
+                                  record.type
+                                )}`}
                               >
                                 <td className="px-1 sm:px-6 py-4 text-sm font-medium text-gray-900 truncate max-w-[100px] sm:max-w-none">
                                   <button
@@ -900,7 +924,7 @@ const AttendanceSystem = () => {
                                       setSelectedEmployee(record)
                                       setShowLocationModal(true)
                                     }}
-                                    className={`text-blue-600 hover:underline text-left w-full truncate ${getTimeStyle(
+                                    className={`hover:underline text-left w-full truncate ${getTimeStyle(
                                       record.timestamp,
                                       record.type
                                     )}`}
