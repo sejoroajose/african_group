@@ -214,11 +214,33 @@ router.post(
         return res.status(400).json({ error: 'Missing required parameters' })
       }
 
-      const storedCredential = await CredentialModel.findByCredentialId(
-        credentialId
+      const employeeCredentials = await CredentialModel.findAllByEmployeeId(
+        employeeId
       )
+      if (!employeeCredentials || employeeCredentials.length === 0) {
+        return res
+          .status(400)
+          .json({ error: 'No credentials found for employee' })
+      }
+
+      // Find if any credential matches the one from browser (considering encoding differences)
+      const storedCredential = employeeCredentials.find((cred) => {
+        // Try different encoding comparisons
+        return (
+          cred.credential_id === credentialId ||
+          cred.credential_id
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '') === credentialId ||
+          credentialId.replace(/-/g, '+').replace(/_/g, '/') ===
+            cred.credential_id
+        )
+      })
+
       if (!storedCredential) {
-        return res.status(400).json({ error: 'Credential not found' })
+        return res
+          .status(400)
+          .json({ error: 'Credential not found for this employee' })
       }
 
       await WebAuthnService.verifyAuthentication(

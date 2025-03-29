@@ -180,6 +180,29 @@ class CredentialModel {
       throw error
     }
   }
+
+  static async findAllByEmployeeId(employee_id) {
+    const query = {
+      text: 'SELECT * FROM webauthn_credentials WHERE employee_id = $1',
+      values: [employee_id],
+    }
+
+    try {
+      const result = await db.pool.query(query)
+      if (result.rows.length === 0) {
+        return []
+      }
+
+      // Map database rows to credential objects
+      return result.rows.map((row) => {
+        const cred = new CredentialModel(row)
+        return cred
+      })
+    } catch (error) {
+      console.error('Error querying for credentials by employee ID:', error)
+      throw error
+    }
+  }
 }
 
 export default CredentialModel

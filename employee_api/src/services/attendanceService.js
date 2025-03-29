@@ -76,18 +76,11 @@ const AttendanceService = {
 
   async getDailyAttendance(startOfDay, endOfDay) {
     try {
-      console.log('Fetching daily attendance:')
-      console.log('Start of Day (UTC):', startOfDay.toISOString())
-      console.log('End of Day (UTC):', endOfDay.toISOString())
 
       const records = await AttendanceModel.findByDateRange(
         startOfDay,
         endOfDay
       )
-
-      console.log('Raw Records Found:', records.length)
-      console.log('First Record (if any):', records[0] || 'No records')
-
       const formattedRecords = records.map((record) => {
         const localTimestamp = new Date(record.timestamp)
         return {
