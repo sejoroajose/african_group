@@ -171,7 +171,7 @@ const WebAuthnService = {
 
   async verifyAuthentication(authResponse, storedCredential, expectedChallenge) {
     try {
-      const publicKey = base64url.toBuffer(storedCredential.public_key);
+      const credentialPublicKey = base64url.toBuffer(storedCredential.public_key);
       
       const authenticator = {
         credentialID: base64url.toBuffer(storedCredential.credential_id),
@@ -184,10 +184,9 @@ const WebAuthnService = {
         expectedChallenge: expectedChallenge,
         expectedOrigin: new URL(process.env.ORIGIN).origin,
         expectedRPID: new URL(process.env.ORIGIN).hostname,
-        //authenticator: authenticator,
         credential: {
           id: authenticator.credentialID,
-          publicKey: authenticator.publicKey,
+          credentialPublicKey: credentialPublicKey,
           counter: authenticator.counter,
         },
         requireUserVerification: true,
@@ -212,6 +211,7 @@ const WebAuthnService = {
       throw error;
     }
   },
+
 
   normalizeCredentialId(credentialId) {
     try {
