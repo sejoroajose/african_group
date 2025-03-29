@@ -223,7 +223,6 @@ router.post(
       }
 
       const storedCredential = employeeCredentials.find((cred) => {
-        // Try direct comparison first
         if (cred.credential_id === credentialId) return true
 
         try {
@@ -233,14 +232,12 @@ router.post(
           ).toString()
           if (decodedStored === credentialId) return true
         } catch (e) {
-          // Ignore decoding errors
         }
 
         try {
           const encodedRequest = Buffer.from(credentialId).toString('base64')
           if (encodedRequest === cred.credential_id) return true
         } catch (e) {
-          // Ignore encoding errors
         }
 
         const normalizedStored = base64url.encode(
