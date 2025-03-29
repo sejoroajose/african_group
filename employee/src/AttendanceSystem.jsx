@@ -276,6 +276,7 @@ const AttendanceSystem = () => {
       )
 
       let locationData = { locationType }
+
       if (locationType !== 'remote') {
         try {
           const position = await new Promise((resolve, reject) => {
@@ -292,7 +293,8 @@ const AttendanceSystem = () => {
             longitude: position.coords.longitude,
           }
         } catch (locationError) {
-          setError('Location access denied. Using selected location type.')
+          console.error('Location error:', locationError)
+          setError('Location access denied. Using selected location type only.')
         }
       }
 
@@ -316,7 +318,7 @@ const AttendanceSystem = () => {
     }
   }
 
-  const handleAttendanceSubmit = async (data, type) => {
+  const handleAttendanceSubmit = async (data, type, locationData) => {
     setLoading(true)
     setError('')
 
@@ -381,7 +383,7 @@ const AttendanceSystem = () => {
       const credentialResponse = {
         id: credential.id,
         rawId: arrayBufferToBase64url(credential.rawId),
-        type: credential.type, 
+        type: credential.type,
         response: {
           clientDataJSON: arrayBufferToBase64url(
             credential.response.clientDataJSON
@@ -399,14 +401,16 @@ const AttendanceSystem = () => {
         )
       }
 
+      // Use the passed locationData to set the coordinates
       const assertionResponse = {
         ...credentialResponse,
         employeeId: upperCaseEmployeeId,
         authenticationType: type || 'sign-in',
         challenge: authOptions.publicKey.challenge,
-        locationType: locationType, 
-        latitude: locationType !== 'remote' ? locationData.latitude : null, 
-        longitude: locationType !== 'remote' ? locationData.longitude : null,
+        locationType: locationData.locationType,
+        // Use the coordinates from locationData if they exist
+        latitude: locationData.latitude || null,
+        longitude: locationData.longitude || null,
       }
 
       if (credential.response.userHandle) {
@@ -444,7 +448,6 @@ const AttendanceSystem = () => {
       setLoading(false)
     }
   }
-
   
     
     const parseTimestamp = (timestamp) => {
