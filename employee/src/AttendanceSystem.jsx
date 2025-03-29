@@ -296,9 +296,11 @@ const AttendanceSystem = () => {
         }
       }
 
-      const response = await fetch(
-        `${BASE_URL}/auth/employee/${upperCaseEmployeeId}`
-      )
+      const response = await fetch(`${BASE_URL}/auth/employee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: upperCaseEmployeeId }),
+      })
       if (!response.ok) throw new Error('Employee not found')
 
       const data = await response.json()
