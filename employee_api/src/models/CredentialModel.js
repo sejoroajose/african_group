@@ -142,40 +142,36 @@ class CredentialModel {
 
   static async findByCredentialId(credential_id) {
     const query = {
-      text: `
-      SELECT c.*, e.name, e.email, e.id as user_id, e.employee_id
-      FROM webauthn_credentials c
-      JOIN employees e ON c.employee_id = e.employee_id
-      WHERE c.credential_id = $1
-    `,
+      text: 'SELECT * FROM webauthn_credentials WHERE credential_id = $1',
       values: [credential_id],
     }
 
     try {
+      console.log('Searching for credential ID:', credential_id)
       const result = await db.pool.query(query)
+
       if (result.rows.length === 0) {
+        console.log('No credential found with ID:', credential_id)
         return null
       }
 
-      const credData = result.rows[0]
+      console.log('Found credential:', result.rows[0])
 
-      const credential = new CredentialModel({
-        id: credData.id,
-        employee_id: credData.employee_id,
-        credential_id: credData.credential_id,
-        public_key: credData.public_key,
-        sign_count: credData.sign_count,
-        aaguid: credData.aaguid,
-        platform: credData.platform,
-        created_at: credData.created_at,
-        last_used_at: credData.last_used_at,
-      })
+      const credential = new CredentialModel(result.rows[0])
 
-      credential.user = {
-        id: credData.user_id,
-        name: credData.name,
-        email: credData.email,
-        employee_id: credData.employee_id,
+      const employeeQuery = {
+        text: 'SELECT * FROM employees WHERE employee_id = $1',
+        values: [credential.employee_id],
+      }
+
+      const employeeResult = await db.pool.query(employeeQuery)
+      if (employeeResult.rows.length > 0) {
+        credential.user = employeeResult.rows[0]
+      } else {
+        console.log(
+          'No employee found for employee_id:',
+          credential.employee_id
+        )
       }
 
       return credential
