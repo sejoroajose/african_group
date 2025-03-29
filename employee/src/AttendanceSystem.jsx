@@ -449,24 +449,22 @@ const AttendanceSystem = () => {
     }
   }
   
-    
+  
     const parseTimestamp = (timestamp) => {
       try {
-        const date = new Date(timestamp)
+        // Create date object without timezone conversion
+        if (typeof timestamp === 'string') {
+          // Parse the timestamp and explicitly keep the UTC time
+          const [datePart, timePart] = timestamp.split('T')
+          const [year, month, day] = datePart.split('-').map(Number)
+          const [hours, minutes, seconds] = timePart.split(/[.:Z]/).map(Number)
 
-        if (!isNaN(date.getTime())) {
+          // JavaScript months are 0-indexed
+          const date = new Date(year, month - 1, day, hours, minutes, seconds)
           return date
         }
 
-        if (typeof timestamp === 'string') {
-          const parsedDate = new Date(Date.parse(timestamp))
-
-          if (!isNaN(parsedDate.getTime())) {
-            return parsedDate
-          }
-        }
-
-        console.warn('Invalid timestamp:', timestamp)
+        console.warn('Invalid timestamp format:', timestamp)
         return new Date()
       } catch (error) {
         console.error('Error parsing timestamp:', error)
@@ -559,8 +557,9 @@ const AttendanceSystem = () => {
 
   const getTimeStyle = (time, type) => {
     const recordDate = new Date(time)
-    const hours = recordDate.getHours()
-    const minutes = recordDate.getMinutes()
+    // Use UTC methods to avoid timezone conversion
+    const hours = recordDate.getUTCHours()
+    const minutes = recordDate.getUTCMinutes()
     const totalMinutes = hours * 60 + minutes
 
     if (type === 'sign-in') {
@@ -573,7 +572,6 @@ const AttendanceSystem = () => {
       return 'text-gray-600 font-medium'
     }
   }
-
   const getTypeStyle = (time, type) => {
     if (type === 'sign-in') {
       const recordDate = new Date(time)
