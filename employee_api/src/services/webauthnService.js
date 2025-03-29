@@ -170,47 +170,47 @@ const WebAuthnService = {
   },
 
   async verifyAuthentication(authResponse, storedCredential, expectedChallenge) {
-    try {
-      const credentialPublicKey = base64url.toBuffer(storedCredential.public_key);
-      
-      const authenticator = {
-        credentialID: base64url.toBuffer(storedCredential.credential_id),
-        credentialPublicKey: publicKey, 
+  try {
+    const { verifyAuthenticationResponse } = await import('@simplewebauthn/server');
+
+    console.log('Credential being used for verification:', {
+      id: storedCredential.credential_id,
+      publicKeyLength: storedCredential.public_key
+        ? base64url.toBuffer(storedCredential.public_key).length
+        : 'no public key',
+      counter: storedCredential.sign_count || 0,
+    })
+
+    console.log('Auth response structure:', Object.keys(authResponse))
+    
+    const verification = await verifyAuthenticationResponse({
+      resctedChallenge: expectedChallenge,
+      expectedOrigin: new URL(process.env.ORIGIN).origin,
+      expectedRPID: new URL(process.env.ORIGIN).hostname,
+      credential: {
+        idponse: authResponse,
+      expe: storedCredential.credential_id,
+        publicKey: base64url.toBuffer(storedCredential.public_key),
         counter: storedCredential.sign_count || 0,
-      };
+      },
+    });
 
-      const verification = await fido2.verifyAuthenticationResponse({
-        response: authResponse,
-        expectedChallenge: expectedChallenge,
-        expectedOrigin: new URL(process.env.ORIGIN).origin,
-        expectedRPID: new URL(process.env.ORIGIN).hostname,
-        credential: {
-          id: authenticator.credentialID,
-          credentialPublicKey: credentialPublicKey,
-          counter: authenticator.counter,
-        },
-        requireUserVerification: true,
-      })
-
-      if (!verification.verified) {
-        throw new Error('Authentication verification failed');
-      }
-
-      /* if (verification.authenticationInfo.newCounter > storedCredential.sign_count) {
-        await CredentialModel.updateSignCount(
-          storedCredential.credential_id,
-          verification.authenticationInfo.newCounter
-        );
-      }
-
-      await CredentialModel.updateLastUsed(storedCredential.credential_id);
- */
-      return verification;
-    } catch (error) {
-      console.error('Authentication verification error:', error);
-      throw error;
+    if (!verification.verified) {
+      throw new Error('Authentication verification failed');
     }
-  },
+
+    /* if (verification.authenticationInfo && verification.authenticationInfo.newCounter > storedCredential.sign_count) {
+      await storedCredential.updateAuthenticationMetadata(
+        verification.authenticationInfo.newCounter
+      );
+    } */
+
+    return verification;
+  } catch (error) {
+    console.error('Authentication verification error:', error);
+    throw error;
+  }
+},
 
 
   normalizeCredentialId(credentialId) {
