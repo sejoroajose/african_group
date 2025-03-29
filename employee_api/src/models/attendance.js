@@ -138,7 +138,6 @@ class Attendance {
   }
   static async create(data) {
     try {
-      // Convert employeeId to employee_id if needed
       const attendanceData = {
         employee_id: data.employeeId || data.employee_id,
         name: data.name,
@@ -152,19 +151,15 @@ class Attendance {
         notes: data.notes || '',
       }
 
-      // Create a new Attendance instance
       const attendance = new Attendance(attendanceData)
 
-      // Validate the data
       const errors = attendance.validate()
       if (errors.length > 0) {
         throw new Error(`Validation errors: ${errors.join(', ')}`)
       }
 
-      // Get the insert query
       const query = attendance.toInsertQuery()
 
-      // Execute the query
       await db.pool.query(query.text, query.values)
 
       return attendance

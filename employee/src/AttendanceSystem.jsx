@@ -404,6 +404,9 @@ const AttendanceSystem = () => {
         employeeId: upperCaseEmployeeId,
         authenticationType: type || 'sign-in',
         challenge: authOptions.publicKey.challenge,
+        locationType: locationType, 
+        latitude: locationType !== 'remote' ? locationData.latitude : null, 
+        longitude: locationType !== 'remote' ? locationData.longitude : null,
       }
 
       if (credential.response.userHandle) {
