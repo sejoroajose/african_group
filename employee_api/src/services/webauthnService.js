@@ -179,6 +179,8 @@ const WebAuthnService = {
         counter: 0,
       };
 
+      console.log('Authenticator:', authenticator)
+      
       const verification = await fido2.verifyAuthenticationResponse({
         response: authResponse,
         expectedChallenge: expectedChallenge,

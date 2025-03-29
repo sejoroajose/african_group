@@ -127,7 +127,6 @@ router.post(
         employee_id: employeeId,
         credential_id: base64url.encode(credentialID),
         public_key: base64url.encode(credentialPublicKey),
-        sign_count: registrationInfo.counter || 0,
         aaguid: aaguid ? aaguid : null,
         platform: credential.authenticatorAttachment || null,
         created_at: new Date(),

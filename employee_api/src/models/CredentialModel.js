@@ -8,7 +8,7 @@ class CredentialModel {
     employee_id,
     credential_id,
     public_key,
-    sign_count = 0,
+    //sign_count = 0,
     aaguid = null,
     platform = null,
     created_at = new Date(),
@@ -18,7 +18,7 @@ class CredentialModel {
     this.employee_id = employee_id
     this.credential_id = credential_id
     this.public_key = public_key
-    this.sign_count = sign_count
+    // this.sign_count = sign_count
     this.aaguid = this.sanitizeAaguid(aaguid)
     this.platform = platform
     this.created_at = created_at
@@ -53,11 +53,10 @@ class CredentialModel {
     return {
       text: `
         INSERT INTO webauthn_credentials 
-        (id, employee_id, credential_id, public_key, sign_count, aaguid, platform, created_at, last_used_at)
+        (id, employee_id, credential_id, public_key, aaguid, platform, created_at, last_used_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (credential_id) DO UPDATE 
         SET 
-          sign_count = EXCLUDED.sign_count,
           last_used_at = EXCLUDED.last_used_at
       `,
       values: [
@@ -65,7 +64,6 @@ class CredentialModel {
         this.employee_id,
         this.credential_id,
         this.public_key,
-        this.sign_count,
         this.aaguid,
         this.platform,
         this.created_at,
@@ -92,14 +90,13 @@ class CredentialModel {
     return errors
   }
 
-  updateAuthenticationMetadata(newSignCount) {
-    this.sign_count = newSignCount
+  updateAuthenticationMetadata() {
     this.last_used_at = new Date()
 
     return {
       text: `
         UPDATE webauthn_credentials 
-        SET sign_count = $1, last_used_at = $2 
+        SET last_used_at = $2 
         WHERE credential_id = $3
       `,
       values: [this.sign_count, this.last_used_at, this.credential_id],
