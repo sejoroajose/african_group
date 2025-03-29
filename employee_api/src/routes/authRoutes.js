@@ -277,11 +277,13 @@ router.post(
       )
 
       const timestamp = TimeHelper.getNigerianTime()
+      const employee = await User.findByEmployeeId(employeeId)
+
       await AttendanceModel.create({
         employeeId,
-        timestamp: TimeHelper.getNigerianTime(),
+        name: employee ? employee.name : employeeId,
         type: signType,
-        name: storedCredential.user.name,
+        timestamp: TimeHelper.getNigerianTime(),
         location_type: locationType,
         latitude,
         longitude,
