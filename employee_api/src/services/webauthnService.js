@@ -197,7 +197,7 @@ const WebAuthnService = {
         throw new Error('Authentication verification failed');
       }
 
-      if (verification.authenticationInfo.newCounter > storedCredential.sign_count) {
+      /* if (verification.authenticationInfo.newCounter > storedCredential.sign_count) {
         await CredentialModel.updateSignCount(
           storedCredential.credential_id,
           verification.authenticationInfo.newCounter
@@ -205,7 +205,7 @@ const WebAuthnService = {
       }
 
       await CredentialModel.updateLastUsed(storedCredential.credential_id);
-
+ */
       return verification;
     } catch (error) {
       console.error('Authentication verification error:', error);
