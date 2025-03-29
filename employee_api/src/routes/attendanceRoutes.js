@@ -41,7 +41,6 @@ router.get(
 router.get('/daily', async (req, res) => {
   try {
     const dateParam = req.query.date
-    console.log('Received Date Parameter:', dateParam)
 
     let targetDate
     try {
@@ -63,15 +62,10 @@ router.get('/daily', async (req, res) => {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
-    console.log('Start of Day (Local):', startOfDay.toISOString())
-    console.log('End of Day (Local):', endOfDay.toISOString())
-
     const dailyRecords = await AttendanceService.getDailyAttendance(
       startOfDay,
       endOfDay
     )
-
-    console.log('Records to Send:', dailyRecords.length)
 
     res.status(200).json(dailyRecords)
   } catch (error) {

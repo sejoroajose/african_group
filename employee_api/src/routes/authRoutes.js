@@ -8,7 +8,6 @@ import TimeHelper from '../utils/timeHelper.js'
 import * as fido2 from '@simplewebauthn/server'
 import CredentialHelper from '../utils/credentialHelper.js'
 import base64url from 'base64url'
-import { stringify as uuidStringify } from 'uuid'
 
 const router = express.Router()
 
@@ -223,19 +222,29 @@ router.post(
           .json({ error: 'No credentials found for employee' })
       }
 
-      // Find if any credential matches the one from browser (considering encoding differences)
       const storedCredential = employeeCredentials.find((cred) => {
-        // Try different encoding comparisons
-        return (
-          cred.credential_id === credentialId ||
+        const normalizedStoredCredId = WebAuthnService.normalizeCredentialId(
           cred.credential_id
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '') === credentialId ||
-          credentialId.replace(/-/g, '+').replace(/_/g, '/') ===
-            cred.credential_id
         )
+        const normalizedRequestCredId =
+          WebAuthnService.normalizeCredentialId(credentialId)
+        return normalizedStoredCredId === normalizedRequestCredId
       })
+
+      console.log('Request credential ID:', credentialId)
+      console.log('Found credentials for employee:', employeeCredentials.length)
+
+      employeeCredentials.forEach((cred, index) => {
+        console.log(`Credential ${index + 1}:`, {
+          original: cred.credential_id,
+          normalized: WebAuthnService.normalizeCredentialId(cred.credential_id),
+        })
+      })
+
+      console.log(
+        'Normalized request credential ID:',
+        WebAuthnService.normalizeCredentialId(credentialId)
+      )
 
       if (!storedCredential) {
         return res

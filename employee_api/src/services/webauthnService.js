@@ -82,27 +82,30 @@ const WebAuthnService = {
     try {
       // Extensive validation
       if (!credential) {
-        throw new Error('Credential object is undefined or null');
+        throw new Error('Credential object is undefined or null')
       }
 
       // Check for id or rawId
-      const credentialId = credential.id || credential.rawId;
+      const credentialId = credential.id || credential.rawId
       if (!credentialId) {
-        console.error('Full Credential Object:', JSON.stringify(credential, null, 2));
-        throw new Error('Credential ID is missing or undefined');
+        console.error(
+          'Full Credential Object:',
+          JSON.stringify(credential, null, 2)
+        )
+        throw new Error('Credential ID is missing or undefined')
       }
 
       // Ensure response object exists
       if (!credential.response) {
-        throw new Error('Credential response is missing');
+        throw new Error('Credential response is missing')
       }
 
       // Check for required response properties
       if (!credential.response.attestationObject) {
-        throw new Error('Attestation object is missing');
+        throw new Error('Attestation object is missing')
       }
       if (!credential.response.clientDataJSON) {
-        throw new Error('Client data JSON is missing');
+        throw new Error('Client data JSON is missing')
       }
 
       const verificationOptions = {
@@ -128,12 +131,12 @@ const WebAuthnService = {
       )
 
       if (!verification.verified) {
-        throw new Error('Registration verification failed');
+        throw new Error('Registration verification failed')
       }
 
       const registrationInfo = verification.registrationInfo
       if (!registrationInfo) {
-        throw new Error('No registration information found');
+        throw new Error('No registration information found')
       }
 
       return {
@@ -193,21 +196,54 @@ const WebAuthnService = {
   },
 
   normalizeCredentialId(credentialId) {
-    if (typeof credentialId === 'object') {
+    try {
+      if (credentialId === undefined || credentialId === null) {
+        throw new Error('Credential ID is undefined or null')
+      }
+
+      // Handle string format
+      if (typeof credentialId === 'string') {
+        // Try to decode and re-encode to ensure consistent base64url format
+        try {
+          return base64url.encode(base64url.decode(credentialId))
+        } catch (e) {
+          // If it fails, it might be plain text or another format
+          return base64url.encode(Buffer.from(credentialId, 'utf8'))
+        }
+      }
+
+      // Handle Buffer
+      if (Buffer.isBuffer(credentialId)) {
+        return base64url.encode(credentialId)
+      }
+
+      // Handle ArrayBuffer
+      if (credentialId instanceof ArrayBuffer) {
+        return base64url.encode(Buffer.from(credentialId))
+      }
+
+      // Handle Buffer-like objects
       if (credentialId.type === 'Buffer' && Array.isArray(credentialId.data)) {
         return base64url.encode(Buffer.from(credentialId.data))
       }
 
-      if (Buffer.isBuffer(credentialId)) {
-        return base64url.encode(credentialId)
+      // Handle typed arrays and array-like objects
+      if (Array.isArray(credentialId) || ArrayBuffer.isView(credentialId)) {
+        return base64url.encode(Buffer.from(credentialId))
       }
-    }
 
-    if (typeof credentialId === 'string') {
-      return base64url.encode(base64url.decode(credentialId))
+      throw new Error(
+        'Unable to normalize credential ID of type: ' + typeof credentialId
+      )
+    } catch (error) {
+      console.error(
+        'Credential ID normalization error:',
+        error,
+        'Input:',
+        credentialId
+      )
+      throw error
     }
-
-    throw new Error('Unable to normalize credential ID')
   },
 }
 

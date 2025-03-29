@@ -193,7 +193,6 @@ class CredentialModel {
         return []
       }
 
-      // Map database rows to credential objects
       return result.rows.map((row) => {
         const cred = new CredentialModel(row)
         return cred
