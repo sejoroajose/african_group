@@ -176,7 +176,7 @@ const WebAuthnService = {
       const authenticator = {
         credentialID: base64url.toBuffer(storedCredential.credential_id),
         credentialPublicKey: publicKey, 
-        //counter: storedCredential.sign_count || 0,
+        counter: storedCredential.sign_count || 0,
       };
 
       const verification = await fido2.verifyAuthenticationResponse({
@@ -184,9 +184,14 @@ const WebAuthnService = {
         expectedChallenge: expectedChallenge,
         expectedOrigin: new URL(process.env.ORIGIN).origin,
         expectedRPID: new URL(process.env.ORIGIN).hostname,
-        authenticator: authenticator,
+        //authenticator: authenticator,
+        credential: {
+          id: authenticator.credentialID,
+          publicKey: authenticator.publicKey,
+          counter: authenticator.counter,
+        },
         requireUserVerification: true,
-      });
+      })
 
       if (!verification.verified) {
         throw new Error('Authentication verification failed');
