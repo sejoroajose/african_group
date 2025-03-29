@@ -174,8 +174,8 @@ const WebAuthnService = {
       const verification = await fido2.verifyAuthenticationResponse({
         response: credential,
         expectedChallenge: challenge,
-        expectedOrigin: this.CONFIG.ORIGIN,
-        expectedRPID: this.CONFIG.RP_ID,
+        expectedOrigin: new URL(process.env.ORIGIN).origin,
+        expectedRPID: new URL(process.env.ORIGIN).hostname,
         credential: {
           id: this.normalizeCredentialId(storedCredential.credential_id),
           publicKey: storedCredential.public_key,
@@ -201,25 +201,19 @@ const WebAuthnService = {
         throw new Error('Credential ID is undefined or null')
       }
 
-      // First, if the input is already base64 encoded, decode it
       let rawBytes
       if (typeof credentialId === 'string') {
         try {
-          // Try to decode as base64url
           rawBytes = base64url.decode(credentialId)
         } catch (e) {
-          // If decoding fails, treat the string as raw bytes
           rawBytes = credentialId
         }
       } else if (Buffer.isBuffer(credentialId)) {
-        // Already a buffer
         rawBytes = credentialId.toString()
       } else {
-        // Other types - convert to buffer first
         rawBytes = Buffer.from(credentialId).toString()
       }
 
-      // Now encode the raw bytes as base64url
       return base64url.encode(rawBytes)
     } catch (error) {
       console.error(
