@@ -55,7 +55,7 @@ router.post(
         return res.status(400).json({ error: 'Employee ID is required' })
       }
 
-      const user = await UserModel.findByEmployeeId(employeeId)
+      const user = await User.findByEmployeeId(employeeId)
       if (!user) {
         return res.status(400).json({ error: 'Employee not found' })
       }
