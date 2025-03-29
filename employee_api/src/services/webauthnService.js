@@ -176,7 +176,7 @@ const WebAuthnService = {
       const authenticator = {
         credentialID: base64url.toBuffer(storedCredential.credential_id),
         credentialPublicKey: publicKey, 
-        counter: storedCredential.sign_count || 0,
+        counter: 0,
       };
 
       const verification = await fido2.verifyAuthenticationResponse({
@@ -190,13 +190,6 @@ const WebAuthnService = {
 
       if (!verification.verified) {
         throw new Error('Authentication verification failed');
-      }
-
-      if (verification.authenticationInfo.newCounter > storedCredential.sign_count) {
-        await CredentialModel.updateSignCount(
-          storedCredential.credential_id,
-          verification.authenticationInfo.newCounter
-        );
       }
 
       await CredentialModel.updateLastUsed(storedCredential.credential_id);
