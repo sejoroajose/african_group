@@ -127,6 +127,7 @@ router.post(
         employee_id: employeeId,
         credential_id: base64url.encode(credentialID),
         public_key: base64url.encode(credentialPublicKey),
+        sign_count: registrationInfo.counter || 0,
         aaguid: aaguid ? aaguid : null,
         platform: credential.authenticatorAttachment || null,
         created_at: new Date(),
@@ -222,6 +223,7 @@ router.post(
       }
 
       const storedCredential = employeeCredentials.find((cred) => {
+        // Try direct comparison first
         if (cred.credential_id === credentialId) return true
 
         try {
